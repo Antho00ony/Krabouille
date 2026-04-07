@@ -11,8 +11,10 @@ class GameView(arcade.Window):
         self.win_width = 800
         self.win_height = 450
         self.scaling = 1  # tilemap chargée à 1 pour éviter double mise à l'échelle
-        super().__init__(self.win_width, self.win_height, title, fullscreen = True)
+        super().__init__(self.win_width, self.win_height, title, fullscreen=False, vsync=True)
         self.background_color = arcade.csscolor.BLACK
+
+        self.show_hitboxes = False
 
         self.tile_map = None
         self.scene = None
@@ -22,10 +24,17 @@ class GameView(arcade.Window):
         self.spawn_x = 0
         self.spawn_y = 0
 
-        self.camera_zoom = 5.5
+        self.camera_zoom = 2.5
 
         self.player_texture = arcade.load_texture("assets/bobby/front.png")
-        self.player_sprite = arcade.Sprite(self.player_texture)
+
+        # Créer le sprite avec la texture d'hitbox pour générer la bonne hitbox
+        hitbox_texture = arcade.load_texture("assets/bobby/hitbox.png")
+        self.player_sprite = arcade.Sprite(hitbox_texture)
+
+        # Remplacer la texture par celle d'affichage (la hitbox reste)
+        self.player_sprite.texture = self.player_texture
+
         self.player_sprite.center_x = 8
         self.player_sprite.center_y = 8
         self.speed = 1
@@ -34,6 +43,9 @@ class GameView(arcade.Window):
         self.player_list.append(self.player_sprite)
 
         self.physics_engine = None
+
+        # Suivi des touches appuyées
+        self.keys_pressed = set()
 
     def setup(self):
         # Initialise Camera2D avec zoom par défaut
@@ -77,6 +89,7 @@ class GameView(arcade.Window):
         self.scene["doors"].draw()
         self.scene["gravestones"].draw()
         self.scene["pnjs"].draw()
+        self.scene["minecarts"].draw()
 
         # Le joueur
         self.player_list.draw()
@@ -87,7 +100,26 @@ class GameView(arcade.Window):
         self.scene["plus"].draw()
         self.scene["pnjs_over"].draw()
 
+        if self.show_hitboxes:
+            self.scene["hitboxes"].draw()
+            self.scene["pnjs_hitboxes"].draw()
+            self.player_sprite.draw_hit_box(arcade.color.RED)
+
+
     def on_update(self, delta_time):
+        # Calculer la vélocité basée sur les touches appuyées
+        self.player_sprite.change_x = 0
+        self.player_sprite.change_y = 0
+
+        if arcade.key.UP in self.keys_pressed:
+            self.player_sprite.change_y = self.speed
+        if arcade.key.DOWN in self.keys_pressed:
+            self.player_sprite.change_y = -self.speed
+        if arcade.key.LEFT in self.keys_pressed:
+            self.player_sprite.change_x = -self.speed
+        if arcade.key.RIGHT in self.keys_pressed:
+            self.player_sprite.change_x = self.speed
+
         self.physics_engine.update()
 
         self.camera.position = self.player_sprite.position
@@ -97,17 +129,21 @@ class GameView(arcade.Window):
             self.set_fullscreen(not self.fullscreen)
             self.win_width = self.width
             self.win_height = self.height
+            # Adapter le zoom proportionnellement à la résolution
+            # Pour voir la même zone de la carte peu importe la résolution
+            adapted_zoom = self.camera_zoom * (self.win_width / 800)
+            # Recréer la caméra avec le zoom adapté
+            self.camera = arcade.Camera2D(zoom=adapted_zoom)
+            self.camera.position = self.player_sprite.position
+        if key == arcade.key.H:
+            self.show_hitboxes = not self.show_hitboxes
 
-        # déplacement caméra simple
-        if key == arcade.key.UP:
-            self.player_sprite.change_y = self.speed
-        if key == arcade.key.DOWN:
-            self.player_sprite.change_y = -self.speed
-        if key == arcade.key.LEFT:
-            self.player_sprite.change_x = -self.speed
-        if key == arcade.key.RIGHT:
-            self.player_sprite.change_x = self.speed
+        # Enregistrer la touche comme appuyée
+        if key in (arcade.key.UP, arcade.key.DOWN, arcade.key.LEFT, arcade.key.RIGHT):
+            self.keys_pressed.add(key)
 
+
+        """ ZOOM DYNAMIQUE
         # Zoom dynamique avec Z / D
         if key == arcade.key.Z:
             self.camera_zoom *= 1.05
@@ -115,18 +151,11 @@ class GameView(arcade.Window):
             self.camera_zoom /= 1.05
 
         # appliquer le zoom à Camera2D
-        self.camera.zoom = min(max(self.camera_zoom, 1.7), 7)
+        self.camera.zoom = min(max(self.camera_zoom, 1.7), 7)"""
 
     def on_key_release(self, key, modifiers):
-        # déplacement caméra simple
-        if key == arcade.key.UP:
-            self.player_sprite.change_y = 0
-        if key == arcade.key.DOWN:
-            self.player_sprite.change_y = 0
-        if key == arcade.key.LEFT:
-            self.player_sprite.change_x = 0
-        if key == arcade.key.RIGHT:
-            self.player_sprite.change_x = 0
+        # Retirer la touche du suivi
+        self.keys_pressed.discard(key)
 
 
 def main():
