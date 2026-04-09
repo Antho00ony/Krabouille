@@ -2,6 +2,7 @@ import arcade
 from arcade import gl
 
 arcade.SpriteList.DEFAULT_TEXTURE_FILTER = gl.NEAREST, gl.NEAREST
+arcade.resources.load_kenney_fonts()
 
 TITLE = "Krabouille"
 
@@ -25,7 +26,7 @@ class GameView(arcade.Window):
         self.scene = None
         self.hitboxes = arcade.SpriteList()
 
-        self.camera = None
+        self.game_camera = None
         self.spawn_x = 0
         self.spawn_y = 0
 
@@ -37,34 +38,59 @@ class GameView(arcade.Window):
         self.npc_dict = {
             "wizard": {
                 "position": (None, None),
-                "dialogue": "WIP",
-                "action": None
+                "actions": [
+                    {
+                        "type": "dialogue",
+                        "content": "I'm the evil wizard"
+                    },
+                    {
+                        "type": "dialogue",
+                        "content": "I kidnapped your family, bring me 5€ if you want to see them again."
+                    }
+                ]
             },
             "ghost": {
                 "position": (None, None),
-                "dialogue": "WIP",
-                "action": {
-                    "type": "target",
-                    "position": (200, 300)
-                }
+                "actions": [
+                    {
+                        "type": "dialogue",
+                        "content": "I'm the ghost!"
+                    },
+                    {
+                        "type": "target",
+                        "position": (200, 300)
+                    }
+                ]
             },
             "cactus": {
                 "position": (None, None),
-                "dialogue": "WIP",
-                "action": {
-                    "type": "target",
-                    "position": (400, 500)
-                }
+                "actions": [
+                    {
+                        "type": "dialogue",
+                        "content": "I'm the ghost!"
+                    },
+                    {
+                        "type": "target",
+                        "position": (400, 500)
+                    }
+                ]
             }
         }
 
+        self.npc_dialogue_name = arcade.Text("Name", 80, 110, arcade.color.WHITE, 48, font_name="Kenney Pixel")
+        self.npc_dialogue_text = arcade.Text("Dialogue", 100, 90, arcade.color.WHITE, 16, font_name="Kenney Pixel")
+        self.npc_show_dialogue = False
+
+        self.npc_dialogue_index = 0
+
+        # Player
         self.player_texture = arcade.load_texture("assets/bobby/front.png")
 
-        # Créer le sprite avec la texture d'hitbox pour générer la bonne hitbox
+        ## Créer le sprite avec la texture d'hitbox pour générer la bonne hitbox
         hitbox_texture = arcade.load_texture("assets/bobby/hitbox.png")
         self.player_sprite = arcade.Sprite(hitbox_texture)
 
-        # Remplacer la texture par celle d'affichage (la hitbox reste)
+        ## Remplacer la texture par celle d'affichage (la hitbox reste)
         self.player_sprite.texture = self.player_texture
 
         self.player_sprite.center_x = 8
@@ -74,6 +100,8 @@ class GameView(arcade.Window):
         self.player_list = arcade.SpriteList()
         self.player_list.append(self.player_sprite)
 
+        self.can_move = True
+
         self.physics_engine = None
 
         # Suivi des touches appuyées
@@ -81,7 +109,9 @@ class GameView(arcade.Window):
 
     def setup(self):
         # Initialise Camera2D avec zoom par défaut
-        self.camera = arcade.Camera2D(zoom = self.camera_zoom)
+        self.game_camera = arcade.Camera2D(zoom = self.camera_zoom)
+        # UI Camera for drawing text without zoom
+        self.ui_camera = arcade.Camera2D(zoom=1.0, position=(self.win_width/2, self.win_height/2))
         self.load_level()
 
     def load_level(self):
@@ -102,7 +132,7 @@ class GameView(arcade.Window):
         self.scene["pnjs_hitboxes"].move(-6, -5.33333)
 
         # position caméra, joueur
-        self.camera.position = self.spawn_x, self.spawn_y
+        self.game_camera.position = self.spawn_x, self.spawn_y
         self.player_sprite.position = self.spawn_x, self.spawn_y
 
         self.scene.add_sprite("Player", self.player_sprite)
@@ -114,7 +144,8 @@ class GameView(arcade.Window):
 
     def on_draw(self):
         self.clear()
-        self.camera.use()
+        self.game_camera.use()
+
 
         # Layers sous le joueur
         self.scene["ground"].draw()
@@ -134,19 +165,26 @@ class GameView(arcade.Window):
         self.scene["plus"].draw()
         self.scene["pnjs_over"].draw()
 
+        # NPCs dialogues avec UI Camera
+        if self.npc_show_dialogue:
+            self.ui_camera.use()
+            self.npc_dialogue_name.draw()
+            self.npc_dialogue_text.draw()
+
+
         if self.show_hitboxes:
+            self.game_camera.use()
             self.scene["hitboxes"].draw()
             self.scene["pnjs_hitboxes"].draw()
             self.player_sprite.draw_hit_box(arcade.color.RED)
-
 
     def on_update(self, delta_time):
         # Calculer la vélocité basée sur les touches appuyées
         self.player_sprite.change_x = 0
         self.player_sprite.change_y = 0
 
-        if self.cam_mode == "player":
-            move_camera_to(self.camera, self.player_sprite.position[0], self.player_sprite.position[1])
+        if self.cam_mode == "player" and self.can_move:
+            move_camera_to(self.game_camera, self.player_sprite.position[0], self.player_sprite.position[1])
             if arcade.key.UP in self.keys_pressed:
                 self.player_sprite.change_y = self.speed
             if arcade.key.DOWN in self.keys_pressed:
@@ -155,8 +193,8 @@ class GameView(arcade.Window):
                 self.player_sprite.change_x = -self.speed
             if arcade.key.RIGHT in self.keys_pressed:
                 self.player_sprite.change_x = self.speed
-        else:
-            move_camera_to(self.camera, self.cam_target[0], self.cam_target[1], speed=0.05)
+        elif self.cam_mode == "target":
+            move_camera_to(self.game_camera, self.cam_target[0], self.cam_target[1], speed=0.05)
             
 
         self.physics_engine.update()
@@ -170,39 +208,43 @@ class GameView(arcade.Window):
             # Pour voir la même zone de la carte peu importe la résolution
             adapted_zoom = self.camera_zoom * (self.win_width / 800)
             # Recréer la caméra avec le zoom adapté
-            self.camera = arcade.Camera2D(zoom=adapted_zoom)
-            self.camera.position = self.player_sprite.position
+            self.game_camera = arcade.Camera2D(zoom=adapted_zoom)
+            self.game_camera.position = self.player_sprite.position
         if key == arcade.key.H:
             self.show_hitboxes = not self.show_hitboxes
 
         # NPCs
         if key == arcade.key.SPACE:
             distance = lambda x : (((x[0] - self.player_sprite.position[0]) ** 2) + ((x[1] - self.player_sprite.position[1]) ** 2)) ** 0.5
+            
             for npc in self.npc_dict:
                 if distance(self.npc_dict[npc]["position"]) < 15:
-                    print(self.npc_dict[npc]["dialogue"])
-                    if self.npc_dict[npc]["action"] is not None:
-                        if self.npc_dict[npc]["action"]["type"] == "target":
-                            if self.cam_mode == "target":
-                                self.cam_mode = "player"
-                            else:
-                                self.cam_mode = "target"
-                                self.cam_target = self.npc_dict[npc]["action"]["position"]
+                    for action in self.npc_dict[npc]["actions"]:
+                        # TODO Continuer système de dialogue
+                        if self.npc_dialogue_index >= len(action):
+                            self.npc_dialogue_index = 0
+                            self.npc_show_dialogue = False
+                        else:
+                            self.npc_dialogue_index += 1
+                        print(self.npc_dialogue_index)
+                        self.can_move = not self.can_move
+                        # actions
+                        if action[self.npc_dialogue_index]["type"] == "dialogue":
+                            self.npc_show_dialogue = True
+                            self.npc_dialogue_name.text = npc
+                            self.npc_dialogue_text.text = action[self.npc_dialogue_index]["content"]
+                        elif action["type"] == "target":
+                            self.cam_target = action[self.npc_dialogue_index]["position"]
+                            move_camera_to(self.game_camera, self.cam_target[0], self.cam_target[1], 0.05)
+                
+
+
+
+
 
         # Enregistrer la touche comme appuyée
         if key in (arcade.key.UP, arcade.key.DOWN, arcade.key.LEFT, arcade.key.RIGHT):
             self.keys_pressed.add(key)
-
-
-        """ ZOOM DYNAMIQUE
-        # Zoom dynamique avec Z / D
-        if key == arcade.key.Z:
-            self.camera_zoom *= 1.05
-        elif key == arcade.key.D:
-            self.camera_zoom /= 1.05
-
-        # appliquer le zoom à Camera2D
-        self.camera.zoom = min(max(self.camera_zoom, 1.7), 7)"""
 
     def on_key_release(self, key, modifiers):
         # Retirer la touche du suivi
