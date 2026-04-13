@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.11.0" orientation="orthogonal" renderorder="right-down" width="57" height="40" tilewidth="16" tileheight="16" infinite="0" nextlayerid="17" nextobjectid="12">
+<map version="1.10" tiledversion="1.11.0" orientation="orthogonal" renderorder="right-down" width="57" height="40" tilewidth="16" tileheight="16" infinite="0" nextlayerid="17" nextobjectid="15">
  <editorsettings>
   <export target="map.json" format="json"/>
  </editorsettings>
- <tileset firstgid="1" source="tilemap.tsx"/>
+ <tileset firstgid="1" source="../tilemap.tsx"/>
  <layer id="1" name="ground" width="57" height="40">
   <data encoding="csv">
 49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,
@@ -587,6 +587,12 @@
    <point/>
   </object>
   <object id="11" name="spawn" x="416.958" y="409.083">
+   <point/>
+  </object>
+  <object id="13" name="torch_trial" x="239.667" y="425.667">
+   <point/>
+  </object>
+  <object id="14" name="maze_trial" x="248.333" y="152">
    <point/>
   </object>
  </objectgroup>

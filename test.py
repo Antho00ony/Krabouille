@@ -1,6 +1,6 @@
-
-{
+npc_dict = {
     "wizard": {
+        "name": "Sorcier",
         "position": (None, None),
         "actions": [
             {
@@ -14,6 +14,7 @@
         ]
     },
     "ghost": {
+        "name": "Le fantôme",
         "position": (None, None),
         "actions": [
             {
@@ -22,11 +23,12 @@
             },
             {
                 "type": "target",
-                "position": (200, 300)
+                "position": (0, 0)
             }
         ]
     },
     "cactus": {
+        "name": "Cactus",
         "position": (None, None),
         "actions": [
             {
@@ -35,7 +37,7 @@
             },
             {
                 "type": "target",
-                "position": (400, 500)
+                "position": (0, 0)
             }
         ]
     }

@@ -723,6 +723,30 @@
                  "width":0,
                  "x":416.958,
                  "y":409.083
+                }, 
+                {
+                 "height":0,
+                 "id":13,
+                 "name":"torch_trial",
+                 "point":true,
+                 "rotation":0,
+                 "type":"",
+                 "visible":true,
+                 "width":0,
+                 "x":239.666666666667,
+                 "y":425.666666666667
+                }, 
+                {
+                 "height":0,
+                 "id":14,
+                 "name":"maze_trial",
+                 "point":true,
+                 "rotation":0,
+                 "type":"",
+                 "visible":true,
+                 "width":0,
+                 "x":248.333333333333,
+                 "y":152
                 }],
          "opacity":1,
          "type":"objectgroup",
@@ -731,7 +755,7 @@
          "y":0
         }],
  "nextlayerid":17,
- "nextobjectid":12,
+ "nextobjectid":15,
  "orientation":"orthogonal",
  "renderorder":"right-down",
  "tiledversion":"1.11.0",
@@ -739,7 +763,7 @@
  "tilesets":[
         {
          "firstgid":1,
-         "source":"tilemap.tsx"
+         "source":"..\/tilemap.tsx"
         }],
  "tilewidth":16,
  "type":"map",
