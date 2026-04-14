@@ -15,7 +15,24 @@ def move_camera_to(camera: arcade.Camera2D, target_x: float, target_y: float, li
     new_y = cur_y + (target_y - cur_y) * speed
     camera.position = (clamp(limits[0][0], limits[1][0], new_x), clamp(limits[0][1], limits[1][1], new_y))
 
+class AnimationSprites(arcade.Sprite):
+    def __init__(self, texture_list: list[arcade.Texture]):
+        super().__init__(texture_list[0])
+
+        self.textures = texture_list
+        self.cur_texture_index = 0
+
+        self.set_texture(0)
+
+    def set_texture(self, index: int):
+        self.cur_texture_index = index
+        super().set_texture(index)
+
+
 class GameView(arcade.Window):
+    def distance(self, pos):
+        return (((pos[0] - self.player_sprite.position[0]) ** 2) + ((pos[1] - self.player_sprite.position[1]) ** 2)) ** 0.5
+
     def __init__(self):
         self.win_width = 800
         self.win_height = 450
@@ -47,50 +64,7 @@ class GameView(arcade.Window):
         self.cam_limits = ()
 
         # NPCs
-        self.npc_dict = {
-            "wizard": {
-                "name": "Sorcier",
-                "position": (None, None),
-                "actions": [
-                    {
-                        "type": "dialogue",
-                        "content": "I'm the evil wizard"
-                    },
-                    {
-                        "type": "dialogue",
-                        "content": "I kidnapped your family, bring me 5€ if you want to see them again."
-                    }
-                ]
-            },
-            "ghost": {
-                "name": "Le fantôme",
-                "position": (None, None),
-                "actions": [
-                    {
-                        "type": "dialogue",
-                        "content": "I'm the ghost!"
-                    },
-                    {
-                        "type": "target",
-                        "position": (240, 214)
-                    }
-                ]
-            },
-            "cactus": {
-                "name": "Cactus",
-                "position": (None, None),
-                "actions": [
-                    {
-                        "type": "dialogue",
-                        "content": "I'm the ghost!"
-                    },
-                    {
-                        "type": "target",
-                        "position": (240, 214)
-                    }
-                ]
-            }
-        }
+        self.npc_dialogues_dict = {}
 
         self.npc_dialogue_name = arcade.Text("Name", 80, 110, arcade.color.WHITE, 48, font_name="Kenney Pixel")
         self.npc_dialogue_text = arcade.Text("Dialogue", 100, 90, arcade.color.WHITE, 16, font_name="Kenney Pixel")
@@ -100,16 +74,16 @@ class GameView(arcade.Window):
 
         # Player
         self.player_texture = arcade.load_texture("assets/bobby/front.png")
+        self.maze_player_texture = arcade.load_texture("assets/bobby/maze_hitbox.png")
 
         ## Créer le sprite avec la texture d'hitbox pour générer la bonne hitbox
-        hitbox_texture = arcade.load_texture("assets/bobby/hitbox.png")
-        self.player_sprite = arcade.Sprite(hitbox_texture)
+        self.player_hitbox_texture = arcade.load_texture("assets/bobby/hitbox.png")
+        self.player_sprite = arcade.Sprite(self.player_hitbox_texture)
 
         ## Remplacer la texture par celle d'affichage (la hitbox reste)
         self.player_sprite.texture = self.player_texture
 
-        self.player_sprite.center_x = 8
-        self.player_sprite.center_y = 8
+        self.player_sprite.center_x, self.player_sprite.center_y = 8, 8
         self.speed = 1
 
         self.player_list = arcade.SpriteList()
@@ -119,30 +93,39 @@ class GameView(arcade.Window):
 
         ## Limites de déplacement
         self.player_min_x = self.player_sprite.width / 2
-        self.player_max_x = 0
         self.player_min_y = self.player_sprite.height / 2
-        self.player_max_y = 0
+        self.player_max_x, self.player_max_y = 0, 0
+
+        # Sprites annexes
+        self.sprite_list = arcade.SpriteList()
+        self.shadow_list = arcade.SpriteList()
+
+        self.chest_texture = arcade.load_spritesheet("assets/chest_tilemap.png").get_texture_grid(size = (16, 16), columns = 2, count = 2)
+        self.chest_sprite = AnimationSprites(self.chest_texture)
+
+        self.maze_shadow_texture = arcade.load_texture("assets/maze_shadow.png")
+        self.maze_shadow_sprite = arcade.Sprite(self.maze_shadow_texture, scale = 0.25)
+
+        self.sprite_list.append(self.chest_sprite)
+        self.shadow_list.append(self.maze_shadow_sprite)
+
+
 
         self.physics_engine = None
-        self.level_name = "map"
-        self.level_entrance_dict = {}
+        self.level_name = "maze_trial"
+        self.level_changes_dict = {}
 
         # Suivi des touches appuyées
         self.keys_pressed = set()
 
+
     def setup(self):
         self.game_camera = arcade.Camera2D(zoom = self.camera_zoom)
         self.ui_camera = arcade.Camera2D(zoom=1.0, position=(self.win_width/2, self.win_height/2))
-        self.load_level(self.level_name)
-
-    def load_level(self, name):
-        levels.load_level(self, name)
-
-        
+        levels.load_level(self, self.level_name)
 
     def on_draw(self):
         self.clear()
-
         levels.draw_level(self, self.level_name)
 
     def on_update(self, delta_time):
@@ -163,6 +146,9 @@ class GameView(arcade.Window):
             move_camera_to(self.game_camera, self.cam_target[0], self.cam_target[1], self.cam_limits, speed=0.05)
             
 
+        if self.level_name == "maze_trial":
+            self.maze_shadow_sprite.position = self.player_sprite.position
+
         self.physics_engine.update()
 
     def on_key_press(self, key, modifiers):
@@ -178,39 +164,55 @@ class GameView(arcade.Window):
             self.game_camera.position = self.player_sprite.position
         if key == arcade.key.H:
             self.show_hitboxes = not self.show_hitboxes
+        if key == arcade.key.D:
+            self.chest_sprite.set_texture((self.chest_sprite.cur_texture_index + 1) % len(self.chest_sprite.textures))
+            print(self.player_sprite.position)
 
         # NPCs & level change
         if key == arcade.key.SPACE:
-            distance = lambda x : (((x[0] - self.player_sprite.position[0]) ** 2) + ((x[1] - self.player_sprite.position[1]) ** 2)) ** 0.5
-            
-            for npc in self.npc_dict:
-                if distance(self.npc_dict[npc]["position"]) < 15:
-                    if self.npc_dialogue_index >= len(self.npc_dict[npc]["actions"]):
-                        pass
-                    elif self.npc_dict[npc]["actions"][self.npc_dialogue_index]["type"] == "dialogue":
-                        self.npc_show_dialogue = True
-                        self.cam_mode = "player"
-                        self.npc_dialogue_name.text = self.npc_dict[npc]["name"]
-                        self.npc_dialogue_text.text = self.npc_dict[npc]["actions"][self.npc_dialogue_index]["content"]
-                    elif self.npc_dict[npc]["actions"][self.npc_dialogue_index]["type"] == "target":
-                        self.cam_target = self.npc_dict[npc]["actions"][self.npc_dialogue_index]["position"]
-                        self.cam_mode = "target"
-                        move_camera_to(self.game_camera, self.cam_target[0], self.cam_target[1], self.cam_limits)
-                
-                    if self.npc_dialogue_index >= len(self.npc_dict[npc]["actions"]):
+            for npc in self.npc_dialogues_dict:
+                if self.distance(self.npc_dialogues_dict[npc]["position"]) < 15:
+                    if self.npc_dialogue_index < len(self.npc_dialogues_dict[npc]["nb_encounters"]):
+                        action = self.npc_dialogues_dict[npc]["actions"][self.npc_dialogue_index] #####################################
+                        if action["type"] == "dialogue":
+                            self.npc_dialogue_name.text = self.npc_dialogues_dict[npc]["name"]
+                            self.npc_dialogue_text.text = action["content"]
+                            self.npc_show_dialogue = True
+                            self.cam_mode = "player"
+                        elif action["type"] == "target":
+                            self.cam_target = action["position"]
+                            self.cam_mode = "target"
+                            move_camera_to(self.game_camera, self.cam_target[0], self.cam_target[1], self.cam_limits)
+                        self.npc_dialogue_index += 1
+                        self.npc_dialogues_dict[npc]["nb_encounters"] += 1
+                        self.can_move = False
+                    else:
                         self.npc_dialogue_index = 0
+                        self.npc_dialogues_dict[npc]["nb_encounters"] = 0
                         self.npc_show_dialogue = False
                         self.can_move = True
                         self.cam_mode = "player"
-                    else:
-                        self.npc_dialogue_index += 1
-                        self.can_move = False
 
-            for entrance in self.level_entrance_dict:
-                if distance(self.level_entrance_dict[entrance]["position"]) < 15:
+            for entrance in self.level_changes_dict:
+                if self.distance(self.level_changes_dict[entrance]["position"]) < 15:
                     levels.load_level(self, entrance)
                     self.level_name = entrance
                     self.player_sprite.position = self.spawn_x, self.spawn_y
+                    print(self.level_name)
+
+            if self.distance(self.chest_sprite.position) < 15:
+                if self.can_move and self.chest_sprite.cur_texture_index == 0:
+                    self.chest_sprite.set_texture(1)
+                    self.can_move = False
+                    self.npc_dialogue_name.text = "Nouvel objet!"
+                    self.npc_dialogue_text.text = "Vous obtenez une potion rouge. Attendez, ne serait-ce pas du sang???"
+                    self.npc_show_dialogue = True
+                    self.cam_mode = "player"
+                else:
+                    self.can_move = True
+                    self.npc_show_dialogue = False
+
+
 
     # Enregistrer la touche comme appuyée
         if key in (arcade.key.UP, arcade.key.DOWN, arcade.key.LEFT, arcade.key.RIGHT):
