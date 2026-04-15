@@ -5,7 +5,17 @@ import levels
 arcade.SpriteList.DEFAULT_TEXTURE_FILTER = gl.NEAREST, gl.NEAREST
 arcade.resources.load_kenney_fonts()
 
+
+# TODO
+# Ombres en plein écran (maze_trial)
+# Réinitialisation dialogues lors du changement de carte (enlever)
+# Réparer les dialogues des guardes
+
+
+
 TITLE = "Krabouille"
+BASE_WIDTH = 800
+BASE_HEIGHT = 450
 
 clamp = lambda minimum, maximum, x : max(minimum, min(x, maximum))
 
@@ -32,6 +42,71 @@ class AnimationSprites(arcade.Sprite):
 class GameView(arcade.Window):
     def distance(self, pos):
         return (((pos[0] - self.player_sprite.position[0]) ** 2) + ((pos[1] - self.player_sprite.position[1]) ** 2)) ** 0.5
+
+    def npc_dialogue(self):
+        for npc in self.npc_dialogues_dict:
+                if self.distance(self.npc_dialogues_dict[npc]["position"]) < 15:
+                    self.npc_dialogue_name.text = self.npc_dialogues_dict[npc]["name"]
+                    npc_data = self.npc_dialogues_dict[npc]
+                    actions_data = npc_data["actions"]
+                    self.object_given = False                  
+
+                    if npc_data["completed"] is None:
+                        action_list = actions_data
+                    else:
+                        if isinstance(actions_data, dict):
+                            if "first_encounter" in actions_data:
+                                action_list = actions_data["first_encounter"]
+                            elif "others" in actions_data:
+                                action_list = actions_data["others"]
+                            else:
+                                action_list = actions_data.get("completed", [])
+                        else:
+                            action_list = actions_data
+
+                    dialogue_first = [x for x in self.npc_dialogues_dict[npc]["actions"]][0]
+                    dialogue_len = len(self.npc_dialogues_dict[npc]["actions"][dialogue_first])
+                    print(dialogue_first, self.npc_dialogue_index, dialogue_len)
+                    if self.npc_dialogue_index >= dialogue_len:
+                        if dialogue_first == "first_encounter" and "first_encounter" in self.npc_dialogues_dict[npc]["actions"]: 
+                            self.npc_dialogues_dict[npc]["actions"].pop("first_encounter")
+                        self.npc_dialogue_index = 0
+                        self.npc_show_dialogue = False
+                        self.can_move = True
+                        break
+                    else:
+                        self.npc_show_dialogue = True
+                        self.can_move = False
+                    
+                    action = action_list[self.npc_dialogue_index]
+                    self.npc_dialogue_index += 1
+
+                    if action["type"] == "dialogue":
+                        self.npc_dialogue_name.text = npc_data["name"]
+                        self.npc_dialogue_text.text = action["content"]
+                        self.npc_show_dialogue = True
+                        self.cam_mode = "player"
+                    elif action["type"] == "target":
+                        self.cam_target = action["position"]
+                        self.cam_mode = "target"
+                        move_camera_to(self.game_camera, self.cam_target[0], self.cam_target[1], self.cam_limits)
+                    elif action["type"] == "item_wait":
+                        if action["name"] in self.inventory:
+                            self.npc_dialogue_name.text = npc_data["name"]
+                            self.npc_dialogue_text.text = action_list[self.npc_dialogue_index]["content"]
+                            self.object_given = True
+                            npc_data["completed"] = True
+                            self.inventory.remove(action["name"])
+                            action = action_list[self.npc_dialogue_index]
+                            self.npc_dialogue_index = 0
+                            if dialogue_first == "others" and "others" in self.npc_dialogues_dict[npc]["actions"]: 
+                                self.npc_dialogues_dict[npc]["actions"].pop("others")
+                        else:
+                            self.object_given = False
+                            self.npc_dialogue_index = 0
+                            break
+
+                    print(action)
 
     def __init__(self):
         self.win_width = 800
@@ -109,15 +184,14 @@ class GameView(arcade.Window):
         self.sprite_list.append(self.chest_sprite)
         self.shadow_list.append(self.maze_shadow_sprite)
 
-
-
         self.physics_engine = None
-        self.level_name = "maze_trial"
+        self.level_name = "map"
         self.level_changes_dict = {}
+        self.inventory = ["potion_rouge"]
+        self.object_given = False
 
         # Suivi des touches appuyées
         self.keys_pressed = set()
-
 
     def setup(self):
         self.game_camera = arcade.Camera2D(zoom = self.camera_zoom)
@@ -156,42 +230,40 @@ class GameView(arcade.Window):
             self.set_fullscreen(not self.fullscreen)
             self.win_width = self.width
             self.win_height = self.height
-            # Adapter le zoom proportionnellement à la résolution
-            # Pour voir la même zone de la carte peu importe la résolution
-            adapted_zoom = self.camera_zoom * (self.win_width / 800)
-            # Recréer la caméra avec le zoom adapté
+
+            # Adapter le zoom à la résolution pour garder un cadrage cohérent.
+            scale_x = self.win_width / BASE_WIDTH
+            scale_y = self.win_height / BASE_HEIGHT
+            scale = min(scale_x, scale_y)
+            adapted_zoom = self.camera_zoom * scale
+
+            # Recréer les caméras avec la nouvelle taille de fenêtre.
             self.game_camera = arcade.Camera2D(zoom=adapted_zoom)
             self.game_camera.position = self.player_sprite.position
+            self.ui_camera = arcade.Camera2D(zoom=1.0, position=(self.win_width / 2, self.win_height / 2))
+
+            # Mettre à jour les limites caméra selon le zoom réellement utilisé.
+            if self.tile_map is not None:
+                self.visible_width = self.win_width / adapted_zoom
+                self.visible_height = self.win_height / adapted_zoom
+
+                self.cam_min_x = self.visible_width / 2
+                self.cam_max_x = self.tile_map.width * self.tile_map.tile_width - (self.visible_width / 2)
+                self.cam_min_y = self.visible_height / 2
+                self.cam_max_y = self.tile_map.height * self.tile_map.tile_height - (self.visible_height / 2)
+                self.cam_limits = ((self.cam_min_x, self.cam_min_y), (self.cam_max_x, self.cam_max_y))
+
+            # Adapter l'UI sans jamais tomber à 0/négatif.
+            self.npc_dialogue_name.font_size = max(24, int(round(48 * scale)))
+            self.npc_dialogue_text.font_size = max(12, int(round(16 * scale)))
+            self.npc_dialogue_name.position = int(round(80 * scale_x)), int(round(110 * scale_y))
+            self.npc_dialogue_text.position = int(round(100 * scale_x)), int(round(90 * scale_y))
         if key == arcade.key.H:
             self.show_hitboxes = not self.show_hitboxes
-        if key == arcade.key.D:
-            self.chest_sprite.set_texture((self.chest_sprite.cur_texture_index + 1) % len(self.chest_sprite.textures))
-            print(self.player_sprite.position)
-
+        
         # NPCs & level change
         if key == arcade.key.SPACE:
-            for npc in self.npc_dialogues_dict:
-                if self.distance(self.npc_dialogues_dict[npc]["position"]) < 15:
-                    if self.npc_dialogue_index < len(self.npc_dialogues_dict[npc]["nb_encounters"]):
-                        action = self.npc_dialogues_dict[npc]["actions"][self.npc_dialogue_index] #####################################
-                        if action["type"] == "dialogue":
-                            self.npc_dialogue_name.text = self.npc_dialogues_dict[npc]["name"]
-                            self.npc_dialogue_text.text = action["content"]
-                            self.npc_show_dialogue = True
-                            self.cam_mode = "player"
-                        elif action["type"] == "target":
-                            self.cam_target = action["position"]
-                            self.cam_mode = "target"
-                            move_camera_to(self.game_camera, self.cam_target[0], self.cam_target[1], self.cam_limits)
-                        self.npc_dialogue_index += 1
-                        self.npc_dialogues_dict[npc]["nb_encounters"] += 1
-                        self.can_move = False
-                    else:
-                        self.npc_dialogue_index = 0
-                        self.npc_dialogues_dict[npc]["nb_encounters"] = 0
-                        self.npc_show_dialogue = False
-                        self.can_move = True
-                        self.cam_mode = "player"
+            self.npc_dialogue()
 
             for entrance in self.level_changes_dict:
                 if self.distance(self.level_changes_dict[entrance]["position"]) < 15:

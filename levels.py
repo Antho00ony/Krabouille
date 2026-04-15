@@ -1,5 +1,6 @@
 import arcade
 import main, npc_dialogues
+from copy import deepcopy
 
 def load_level(self, name):
     if name == "map":
@@ -31,7 +32,16 @@ def load_level(self, name):
                 self.spawn_x = obj.shape[0]
                 self.spawn_y = obj.shape[1]
             if obj.name in ("wizard", "ghost", "cactus"):
-                self.npc_dialogues_dict.update({obj.name: {"name": npc_dialogues.npc_dialogues_dict[obj.name]["name"], "position": (obj.shape[0], obj.shape[1]), "actions": npc_dialogues.npc_dialogues_dict[obj.name]["actions"]}})
+                source_data = npc_dialogues.npc_dialogues_dict[obj.name]
+                self.npc_dialogues_dict.update({
+                    obj.name: {
+                        "name": source_data["name"],
+                        "position": (obj.shape[0], obj.shape[1]),
+                        "actions": deepcopy(source_data["actions"]),
+                        "completed": source_data.get("completed", False),
+                        "first_encounter_done": False
+                    }
+                })
             if obj.name in ("torch_trial", "maze_trial"):
                 self.level_changes_dict.update({obj.name: {"position": (obj.shape[0], obj.shape[1])}})
 
@@ -84,7 +94,16 @@ def load_level(self, name):
             if obj.name == "chest":
                 self.chest_sprite.position = obj.shape[0][0] + 8, obj.shape[0][1] - 2
             if obj.name in ("guard_l", "guard_r"):
-                self.npc_dialogues_dict.update({obj.name: {"name": npc_dialogues.npc_dialogues_dict[obj.name]["name"], "position": (obj.shape[0], obj.shape[1]), "actions": npc_dialogues.npc_dialogues_dict[obj.name]["actions"]}})
+                source_data = npc_dialogues.npc_dialogues_dict[obj.name]
+                self.npc_dialogues_dict.update({
+                    obj.name: {
+                        "name": source_data["name"],
+                        "position": (obj.shape[0], obj.shape[1]),
+                        "actions": deepcopy(source_data["actions"]),
+                        "completed": source_data.get("completed", False),
+                        "first_encounter_done": False
+                    }
+                })
 
         self.scene = arcade.Scene.from_tilemap(self.tile_map)
         # pnjs offset
