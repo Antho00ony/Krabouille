@@ -10,6 +10,7 @@ arcade.resources.load_kenney_fonts()
 # Ombres en plein écran (maze_trial)
 # Réinitialisation dialogues lors du changement de carte (enlever)
 # Réparer les dialogues des guardes
+# Sprite personnage
 
 
 
@@ -37,6 +38,56 @@ class AnimationSprites(arcade.Sprite):
     def set_texture(self, index: int):
         self.cur_texture_index = index
         super().set_texture(index)
+
+class Player(arcade.Sprite):
+    def __init__(self, texture_list: list[arcade.Texture], scale: float = 1):
+        super().__init__(texture_list[0], scale = scale)
+
+        self.textures = texture_list
+        self.sync_hit_box_to_texture()
+        self.cur_texture_index = 3
+
+        self.state = "front" # front, back, left, right
+
+        self.set_texture(3)
+
+    def set_texture(self, index: int):
+        self.cur_texture_index = index
+        super().set_texture(index)
+
+    def next_frame(self):
+        if self.state == "front":
+            if self.cur_texture_index >= 7:
+                self.set_texture(4)
+            else:
+                self.set_texture(clamp(4, 7, self.cur_texture_index + 1))
+        elif self.state == "back":
+            if self.cur_texture_index >= 11:
+                self.set_texture(8)
+            else:
+                self.set_texture(clamp(8, 11, self.cur_texture_index + 1))
+        elif self.state == "left":
+            if self.cur_texture_index >= 15:
+                self.set_texture(12)
+            else:
+                self.set_texture(clamp(12, 15, self.cur_texture_index + 1))
+        elif self.state == "right":
+            if self.cur_texture_index >= 19:
+                self.set_texture(16)
+            else:
+                self.set_texture(clamp(16, 19, self.cur_texture_index + 1))
+
+    def no_moving_position(self):
+        if self.state == "front":
+            self.set_texture(4)
+        elif self.state == "back":
+            self.set_texture(8)
+        elif self.state == "left":
+            self.set_texture(12)
+        elif self.state == "right":
+            self.set_texture(16)
+
+
 
 
 class GameView(arcade.Window):
@@ -148,23 +199,19 @@ class GameView(arcade.Window):
         self.npc_dialogue_index = 0
 
         # Player
-        self.player_texture = arcade.load_texture("assets/bobby/front.png")
-        self.maze_player_texture = arcade.load_texture("assets/bobby/maze_hitbox.png")
+        self.player_texture = arcade.load_spritesheet("assets/bobby/bobby_spritesheet.png").get_texture_grid(size = (80, 80), columns = 4, count = 20)
 
-        ## Créer le sprite avec la texture d'hitbox pour générer la bonne hitbox
-        self.player_hitbox_texture = arcade.load_texture("assets/bobby/hitbox.png")
-        self.player_sprite = arcade.Sprite(self.player_hitbox_texture)
+        ## Apply hitbox shape from a dedicated texture to the animated player sprite
+        self.player_sprite = Player(self.player_texture, scale = 0.4)
 
-        ## Remplacer la texture par celle d'affichage (la hitbox reste)
-        self.player_sprite.texture = self.player_texture
-
-        self.player_sprite.center_x, self.player_sprite.center_y = 8, 8
+        self.player_sprite.center_x, self.player_sprite.center_y = 16, 16
         self.speed = 1
 
         self.player_list = arcade.SpriteList()
         self.player_list.append(self.player_sprite)
 
         self.can_move = True
+        self.moving = False
 
         ## Limites de déplacement
         self.player_min_x = self.player_sprite.width / 2
@@ -189,9 +236,9 @@ class GameView(arcade.Window):
         self.level_changes_dict = {}
         self.inventory = ["potion_rouge"]
         self.object_given = False
+        self.time_elapsed = 0
 
-        # Suivi des touches appuyées
-        self.keys_pressed = set()
+        self.keys = set()
 
     def setup(self):
         self.game_camera = arcade.Camera2D(zoom = self.camera_zoom)
@@ -207,21 +254,28 @@ class GameView(arcade.Window):
         self.player_sprite.change_y = 0
 
         if self.cam_mode == "player" and self.can_move:
-            move_camera_to(self.game_camera, self.player_sprite.position[0], self.player_sprite.position[1], self.cam_limits)
-            if arcade.key.UP in self.keys_pressed and self.player_sprite.position[1] <= self.player_max_y:
+            if arcade.key.UP in self.keys and self.player_sprite.position[1] <= self.player_max_y: 
                 self.player_sprite.change_y = self.speed
-            if arcade.key.DOWN in self.keys_pressed and self.player_sprite.position[1] >= self.player_min_y:
+            elif arcade.key.DOWN  in self.keys and self.player_sprite.position[1] >= self.player_min_y: 
                 self.player_sprite.change_y = -self.speed
-            if arcade.key.LEFT in self.keys_pressed and self.player_sprite.position[0] >= self.player_min_x:
+            elif arcade.key.LEFT  in self.keys and self.player_sprite.position[0] >= self.player_min_x: 
                 self.player_sprite.change_x = -self.speed
-            if arcade.key.RIGHT in self.keys_pressed and self.player_sprite.position[0] <= self.player_max_x:
+            elif arcade.key.RIGHT  in self.keys and self.player_sprite.position[0] <= self.player_max_x: 
                 self.player_sprite.change_x = self.speed
+            move_camera_to(self.game_camera, self.player_sprite.position[0], self.player_sprite.position[1], self.cam_limits)
         elif self.cam_mode == "target":
             move_camera_to(self.game_camera, self.cam_target[0], self.cam_target[1], self.cam_limits, speed=0.05)
             
 
         if self.level_name == "maze_trial":
             self.maze_shadow_sprite.position = self.player_sprite.position
+
+        self.time_elapsed += delta_time
+        if self.time_elapsed > 0.3 and self.moving:
+            self.player_sprite.next_frame()
+            self.time_elapsed = 0
+        if not self.moving:
+            self.player_sprite.no_moving_position()
 
         self.physics_engine.update()
 
@@ -260,7 +314,9 @@ class GameView(arcade.Window):
             self.npc_dialogue_text.position = int(round(100 * scale_x)), int(round(90 * scale_y))
         if key == arcade.key.H:
             self.show_hitboxes = not self.show_hitboxes
-        
+        if key == arcade.key.N:
+            self.player_sprite.next_frame()
+
         # NPCs & level change
         if key == arcade.key.SPACE:
             self.npc_dialogue()
@@ -284,15 +340,19 @@ class GameView(arcade.Window):
                     self.can_move = True
                     self.npc_show_dialogue = False
 
-
-
-    # Enregistrer la touche comme appuyée
         if key in (arcade.key.UP, arcade.key.DOWN, arcade.key.LEFT, arcade.key.RIGHT):
-            self.keys_pressed.add(key)
+            if self.keys == set(): 
+                self.keys.add(key)
+                if key == arcade.key.UP: self.player_sprite.state = "back" 
+                if key == arcade.key.DOWN: self.player_sprite.state = "front"
+                if key == arcade.key.LEFT: self.player_sprite.state = "left" 
+                if key == arcade.key.RIGHT: self.player_sprite.state = "right"
+            self.moving = True
 
     def on_key_release(self, key, modifiers):
-        # Retirer la touche du suivi
-        self.keys_pressed.discard(key)
+        if key in (arcade.key.UP, arcade.key.DOWN, arcade.key.LEFT, arcade.key.RIGHT):
+            self.keys.discard(key)
+            self.moving = False
 
 
 def main():
@@ -303,3 +363,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

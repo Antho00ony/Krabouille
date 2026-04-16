@@ -353,7 +353,7 @@
          "name":"hitboxes",
          "opacity":1,
          "type":"tilelayer",
-         "visible":false,
+         "visible":true,
          "width":24,
          "x":0,
          "y":0
@@ -397,7 +397,7 @@
          "name":"hitboxes2",
          "opacity":1,
          "type":"tilelayer",
-         "visible":false,
+         "visible":true,
          "width":24,
          "x":0,
          "y":0

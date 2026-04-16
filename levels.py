@@ -4,9 +4,6 @@ from copy import deepcopy
 
 def load_level(self, name):
     if name == "map":
-        self.player_sprite.texture = self.player_hitbox_texture
-        self.player_sprite.sync_hit_box_to_texture()
-        self.player_sprite.texture = self.player_texture
 
         self.hitboxes = arcade.SpriteList()
 
