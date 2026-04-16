@@ -686,7 +686,6 @@
         {
          "draworder":"topdown",
          "id":6,
-         "locked":true,
          "name":"objects",
          "objects":[
                 {
@@ -776,7 +775,7 @@
  "tilesets":[
         {
          "firstgid":1,
-         "source":"..\/tilemap.tsx"
+         "source":"tilemap.tsx"
         }],
  "tilewidth":16,
  "type":"map",

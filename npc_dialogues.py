@@ -98,11 +98,17 @@ npc_dialogues_dict = {
                     },
                     {
                         "type": "item_wait",
-                        "name": "potion_rouge"
+                        "id": "potion_rouge",
+                        "name": "Intentional Game Design",
+                        "content": "Vous obtenez un briquet!",
+                        "item_given": "briquet"
                     },
                     {
                         "type": "dialogue",
                         "content": "Merci! En échange, voilà mon briquet. Je n'en ai plus besoin."
+                    },
+                    {
+                        "type": "finish"
                     }
                 ],
                 "completed": [
@@ -116,7 +122,7 @@ npc_dialogues_dict = {
     "guard_l": {
         "name": "Gardien",
         "position": (None, None),
-        "completed": None,
+        "completed": False,
         "actions": {
             "others": [
                 {
@@ -126,6 +132,15 @@ npc_dialogues_dict = {
                 {
                     "type": "dialogue",
                     "content": "Va le voir."
+                },
+                {
+                    "type": "finish"
+                }
+            ],
+            "completed": [
+                {
+                    "type": "dialogue",
+                    "content": "Alors, qu'est-ce qu'il t'a dit?"
                 }
             ]
         }
@@ -133,7 +148,7 @@ npc_dialogues_dict = {
     "guard_r": {
         "name": "Gardien",
         "position": (None, None),
-        "completed": None,
+        "completed": False,
         "actions": {
             "others": [
                 {
@@ -147,6 +162,15 @@ npc_dialogues_dict = {
                 {
                     "type": "dialogue",
                     "content": "Qu'est-ce qu'il y a dans le coffre? Bah je sais pas vas-y toi. T'es le seul à pouvoir bouger."
+                },
+                {
+                    "type": "finish"
+                }
+            ],
+            "completed": [
+                {
+                    "type": "dialogue",
+                    "content": "..."
                 }
             ]
         }

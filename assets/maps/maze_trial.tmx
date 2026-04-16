@@ -3,7 +3,7 @@
  <editorsettings>
   <export target="maze_trial.json" format="json"/>
  </editorsettings>
- <tileset firstgid="1" source="../tilemap.tsx"/>
+ <tileset firstgid="1" source="tilemap.tsx"/>
  <tileset firstgid="169" source="../32px_tilemap.tsx"/>
  <layer id="1" name="ground" width="24" height="33">
   <data encoding="csv">

@@ -3,7 +3,7 @@
  <editorsettings>
   <export target="map.json" format="json"/>
  </editorsettings>
- <tileset firstgid="1" source="../tilemap.tsx"/>
+ <tileset firstgid="1" source="tilemap.tsx"/>
  <layer id="1" name="ground" width="57" height="40" locked="1">
   <data encoding="csv">
 49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,
@@ -576,7 +576,7 @@
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 </data>
  </layer>
- <objectgroup id="6" name="objects" locked="1">
+ <objectgroup id="6" name="objects">
   <object id="6" name="ghost" x="770.25" y="224.25">
    <point/>
   </object>
