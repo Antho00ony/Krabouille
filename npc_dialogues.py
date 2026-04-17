@@ -2,19 +2,85 @@ import main
 
 npc_dialogues_dict = {
     "wizard": {
-        "name": "Sorcier",
+        "name": "Krabouille le sorcier",
         "position": (None, None),
         "completed": False,
+        "place": None,
         "actions": {
             "others": [
                 {
                     "type": "dialogue",
-                    "content": "I'm the evil wizard"
+                    "content": "Je suis Krabouille le sorcier."
                 },
                 {
                     "type": "dialogue",
-                    "content": "I kidnapped your family, bring me 5€ if you want to see them again."
+                    "content": "..."
+                },
+                {
+                    "type": "dialogue",
+                    "content": "Quoi? Mon nom te fait rire?"
+                },
+                {
+                    "type": "dialogue",
+                    "content": "On va voir si tu rigoles encore longtemps."
+                },
+                {
+                    "type": "dialogue",
+                    "content": "J'ai kidnappé ta famille."
+                },
+                {
+                    "type": "dialogue",
+                    "content": "Si tu veux la revoir, ramène moi une nouvelle baguette magique qui se trouve dans le château."
+                },
+                {
+                    "type": "target",
+                    "position": (240, 214)
+                },
+                {
+                    "type": "dialogue",
+                    "content": "Donne moi la clé et j'ouvrirai la porte."
+                },
+                {
+                    "type": "dialogue",
+                    "content": "Va, et explore ce vaste monde, rencontre les personnages non joueurs!"
+                },
+                {
+                    "type": "dialogue",
+                    "content": "MOUAHAHAHA"
                 }
+            ],
+            "others": [
+                {
+                    "type": "dialogue",
+                    "content": "Donne-moi la clé, si tu l'as"
+                },
+                {
+                    "type": "item_wait",
+                    "id": "cle",
+                    "name": "Intentional Game Design",
+                    "content": "Vous donnez la clé. Vous pouvez désormais entrer dans le château.",
+                    "item_given": "None"
+                },
+                {
+                    "type": "dialogue",
+                    "content": "Bonne chance, ramène moi ma baguette magique et tu reverras ta famille..."
+                },
+                {
+                    "type": "finish"
+                }
+            ],
+                "completed": [
+                    {
+                        "type": "dialogue",
+                        "content": "Ma baguette?"
+                    },
+                    {
+                        "type": "item_wait",
+                        "id": "baguette_magique",
+                        "name": "Krabouille le sorcier",
+                        "content": "Bien. Voilà ta famille...",
+                        "item_given": "family"
+                    }
             ]
         }
     },
@@ -22,6 +88,7 @@ npc_dialogues_dict = {
         "name": "Le fantôme",
         "position": (None, None),
         "completed": False,
+        "place": "torch_trial",
         "actions": {
             "first_encounter": [
                 {
@@ -36,10 +103,10 @@ npc_dialogues_dict = {
                     "content": "..."
                 },{
                     "type": "dialogue",
-                    "content": "Je suis désolé... Pour me faire pardonner je vais t'offrir ce A DEFINIR" #####################################
+                    "content": "Je suis désolé... Pour me faire pardonner je vais t'offrir une clé qui ouvre la porte du château."
                 },{
                     "type": "dialogue",
-                    "content": "En echange de quelque chose bien sûr! Ça se trouve ici:"
+                    "content": "En echange de quelque chose bien sûr! Une statue! Elle se trouve ici:"
                 },
                 {
                     "type": "target",
@@ -47,15 +114,42 @@ npc_dialogues_dict = {
                 },
                 {
                     "type": "dialogue",
-                    "content": "Je crois en toi!"
+                    "content": "Par contre, il te faudra un briquet. Il me semble que le cactus en a un."
                 }
-            ]
+            ],
+            "others": [
+                {
+                    "type": "dialogue",
+                    "content": "Rapporte-moi une statue."
+                },
+                {
+                    "type": "item_wait",
+                    "id": "statue",
+                    "name": "Intentional Game Design",
+                    "content": "Vous obtenez une clé! Vous pouvez ouvrir la porte du château.",
+                    "item_given": "cle"
+                },
+                {
+                    "type": "dialogue",
+                    "content": "Prends la clé et laisse-moi reposer en paix."
+                },
+                {
+                    "type": "finish"
+                }
+            ],
+                "completed": [
+                    {
+                        "type": "dialogue",
+                        "content": "Tu es sourd? Laisse moi reposer en paix!"
+                    }
+                ]
         }
     },
     "cactus": {
         "name": "Cactus",
         "position": (None, None),
         "completed": False,
+        "place": "maze_trial",
         "actions": {
                 "first_encounter": [
                     {
@@ -123,6 +217,7 @@ npc_dialogues_dict = {
         "name": "Gardien",
         "position": (None, None),
         "completed": False,
+        "place": None,
         "actions": {
             "others": [
                 {
@@ -149,6 +244,7 @@ npc_dialogues_dict = {
         "name": "Gardien",
         "position": (None, None),
         "completed": False,
+        "place": None,
         "actions": {
             "others": [
                 {

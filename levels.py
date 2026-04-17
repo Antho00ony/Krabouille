@@ -25,7 +25,6 @@ def define_player(self, hitbox_name, _scale: float = 0.4):
 
     self.hitboxes = arcade.SpriteList()
 
-
 def load_level(self, name):
     if name == "map":
         self.tile_map = arcade.load_tilemap("assets/maps/map.json", scaling = self.scaling)
@@ -40,14 +39,14 @@ def load_level(self, name):
                 self.spawn_x = obj.shape[0]
                 self.spawn_y = obj.shape[1]
             if obj.name in ("wizard", "ghost", "cactus"):
-                npc_dialogues.npc_dialogues_dict[obj.name] = npc_dialogues.npc_dialogues_dict[obj.name]
                 self.npc_dialogues_dict.update({
                     obj.name: {
                         "name": npc_dialogues.npc_dialogues_dict[obj.name]["name"],
                         "position": (obj.shape[0], obj.shape[1]),
                         "actions": npc_dialogues.npc_dialogues_dict[obj.name]["actions"],
                         "completed": npc_dialogues.npc_dialogues_dict[obj.name].get("completed", False),
-                        "first_encounter_done": False
+                        "first_encounter_done": False,
+                        "place": npc_dialogues.npc_dialogues_dict[obj.name]["place"]
                     }
                 })
             if obj.name in ("torch_trial", "maze_trial"):
@@ -80,6 +79,14 @@ def load_level(self, name):
 
         main.change_cam_limits(self)
 
+        try:
+            self.sprite_list.remove(self.doors_sprite)
+            self.sprite_list.remove(self.torch_sprite1)
+            self.sprite_list.remove(self.torch_sprite2)
+            self.sprite_list.remove(self.torch_sprite3)
+        except:
+            pass
+
         self.npc_dialogues_dict = {}
         self.level_changes_dict = {}
         for obj in self.tile_map.object_lists.get("objects", []):
@@ -91,6 +98,10 @@ def load_level(self, name):
                 self.exit = obj.shape
             if obj.name == "chest":
                 self.chest_sprite.position = obj.shape[0][0] + 8, obj.shape[0][1] - 2
+                if "potion_rouge" in self.inventory:
+                    self.chest_sprite.set_texture(1)
+                else:
+                    self.chest_sprite.set_texture(0)
             if obj.name in ("guard_l", "guard_r"):
                 npc_dialogues.npc_dialogues_dict[obj.name] = npc_dialogues.npc_dialogues_dict[obj.name]
                 self.npc_dialogues_dict.update({
@@ -122,11 +133,6 @@ def load_level(self, name):
 
             main.change_cam_limits(self)
 
-            try:
-                self.sprite_list.remove(self.chest_sprite)
-            except:
-                pass
-
             self.npc_dialogues_dict = {}
             self.level_changes_dict = {}
             for obj in self.tile_map.object_lists.get("objects", []):
@@ -137,6 +143,8 @@ def load_level(self, name):
                     self.level_changes_dict.update({obj.name: {"position": (obj.shape[0], obj.shape[1])}})
                     self.exit = obj.shape
                     self.doors_sprite.position = obj.shape[0], obj.shape[1] + 24
+                if obj.name == "map_1":
+                    self.level_changes_dict.update({obj.name: {"position": (obj.shape[0], obj.shape[1])}})
                 if obj.name == "torch1":
                     self.torch_sprite1.position = obj.shape[0][0] + 10, obj.shape[0][1]
                 if obj.name == "torch2":
@@ -144,7 +152,14 @@ def load_level(self, name):
                 if obj.name == "torch3":
                     self.torch_sprite3.position = obj.shape[0][0] + 10, obj.shape[0][1]
                 if obj.name == "ladders":
-                    self.ladders_sprite.position = obj.shape[0], obj.shape[1] + 74
+                    self.ladders_sprite.position = obj.shape[0], obj.shape[1] + 198
+                if obj.name == "chest":
+                    self.chest_sprite.position = obj.shape[0][0] + 8, obj.shape[0][1] - 8
+                    if "statue" in self.inventory:
+                        self.chest_sprite.set_texture(1)
+                    else:
+                        self.chest_sprite.set_texture(0)
+                
                 
             self.scene = arcade.Scene.from_tilemap(self.tile_map)
 
@@ -233,10 +248,10 @@ def draw_level(self, name):
         # Layers sous le joueur
         self.scene["ground"].draw()
         self.scene["walls"].draw()
-        self.scene["boxes"].draw()
-
         if self.torch_sprite1.cur_texture_index == 1 and self.torch_sprite2.cur_texture_index == 1 and self.torch_sprite3.cur_texture_index == 1:
             self.ladders_sprite_list.draw()
+        self.scene["boxes"].draw()
+
             
         self.sprite_list.draw()
         self.player_list.draw()

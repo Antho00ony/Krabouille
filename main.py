@@ -1,222 +1,134 @@
 import arcade
 from arcade import gl
+
 import levels
+from classes import *
+from functions import *
+from on_key_press import key_press
 
 arcade.SpriteList.DEFAULT_TEXTURE_FILTER = gl.NEAREST, gl.NEAREST
 arcade.resources.load_kenney_fonts()
-
+arcade.load_font("assets/Fipps-Regular.otf")
 
 # TODO
-# Coffre torch_trial
-
+# Château (tuiles poussables)
+### Portes
+### Casse tête
+### Dialogue krabouille (type item_wait ==> None; END)
 
 
 TITLE = "Krabouille"
-BASE_WIDTH = 800
-BASE_HEIGHT = 450
-
-clamp = lambda minimum, maximum, x : max(minimum, min(x, maximum))
-
-def move_camera_to(camera: arcade.Camera2D, target_x: float, target_y: float, limits: tuple, speed: float = 0.08):
-    cur_x, cur_y = camera.position
-    new_x = cur_x + (target_x - cur_x) * speed
-    new_y = cur_y + (target_y - cur_y) * speed
-    camera.position = (clamp(limits[0][0], limits[1][0], new_x), clamp(limits[0][1], limits[1][1], new_y))
-
-def change_cam_limits(self):
-        self.win_width = self.width
-        self.win_height = self.height
-
-        # Adapter le zoom à la résolution pour garder un cadrage cohérent.
-        scale_x = self.win_width / BASE_WIDTH
-        scale_y = self.win_height / BASE_HEIGHT
-        scale = min(scale_x, scale_y)
-        adapted_zoom = self.camera_zoom * scale
-
-        # Recréer les caméras avec la nouvelle taille de fenêtre.
-        self.game_camera = arcade.Camera2D(zoom=adapted_zoom)
-        self.game_camera.position = self.player_sprite.position
-        self.ui_camera = arcade.Camera2D(zoom=1.0, position=(self.win_width / 2, self.win_height / 2))
-
-        # Mettre à jour les limites caméra selon le zoom réellement utilisé.
-        if self.tile_map is not None:
-            self.visible_width = self.win_width / adapted_zoom
-            self.visible_height = self.win_height / adapted_zoom
-
-            self.cam_min_x = self.visible_width / 2
-            self.cam_max_x = self.tile_map.width * self.tile_map.tile_width - (self.visible_width / 2)
-            self.cam_min_y = self.visible_height / 2
-            self.cam_max_y = self.tile_map.height * self.tile_map.tile_height - (self.visible_height / 2)
-            self.cam_limits = ((self.cam_min_x, self.cam_min_y), (self.cam_max_x, self.cam_max_y))
-
-            self.player_min_x = self.player_sprite.width / 2 * self.player_sprite.scale[0]
-            self.player_min_y = self.player_sprite.height * self.player_sprite.scale[0]
-            self.player_max_x = self.tile_map.width * self.tile_map.tile_width - self.player_sprite.width / 2 * self.player_sprite.scale[0]
-            self.player_max_y = self.tile_map.height * self.tile_map.tile_height - self.player_sprite.height / 2 * self.player_sprite.scale[0]
-
-        # Adapter l'UI sans jamais tomber à 0/négatif.
-        self.npc_dialogue_name.font_size = max(24, int(round(48 * scale)))
-        self.npc_dialogue_text.font_size = max(12, int(round(16 * scale)))
-        self.npc_dialogue_name.position = int(round(80 * scale_x)), int(round(110 * scale_y))
-        self.npc_dialogue_text.position = int(round(100 * scale_x)), int(round(90 * scale_y))
-
-class AnimationSprites(arcade.Sprite):
-    def __init__(self, texture_list: list[arcade.Texture]):
-        super().__init__(texture_list[0])
-
-        self.textures = texture_list
-        self.cur_texture_index = 0
-
-        self.set_texture(0)
-
-    def set_texture(self, index: int):
-        self.cur_texture_index = index
-        super().set_texture(index)
-
-class Player(arcade.Sprite):
-    def __init__(self, texture_list: list[arcade.Texture], scale: float = 1, hitbox_index: int = 0):
-        super().__init__(texture_list[hitbox_index], scale = scale)
-
-        self.textures = texture_list
-        self.sync_hit_box_to_texture()
-        self.cur_texture_index = 3
-
-        self.state = "front" # front, back, left, right
-
-        self.set_texture(3)
-
-    def set_texture(self, index: int):
-        self.cur_texture_index = index
-        super().set_texture(index)
-
-    def next_frame(self, can_move):
-        if can_move:
-            if self.state == "front":
-                if self.cur_texture_index >= 7:
-                    self.set_texture(4)
-                else:
-                    self.set_texture(clamp(4, 7, self.cur_texture_index + 1))
-            elif self.state == "back":
-                if self.cur_texture_index >= 11:
-                    self.set_texture(8)
-                else:
-                    self.set_texture(clamp(8, 11, self.cur_texture_index + 1))
-            elif self.state == "left":
-                if self.cur_texture_index >= 15:
-                    self.set_texture(12)
-                else:
-                    self.set_texture(clamp(12, 15, self.cur_texture_index + 1))
-            elif self.state == "right":
-                if self.cur_texture_index >= 19:
-                    self.set_texture(16)
-                else:
-                    self.set_texture(clamp(16, 19, self.cur_texture_index + 1))
-
-    def no_moving_position(self, can_move):
-        if can_move:
-            if self.state == "front":
-                self.set_texture(4)
-            elif self.state == "back":
-                self.set_texture(8)
-            elif self.state == "left":
-                self.set_texture(12)
-            elif self.state == "right":
-                self.set_texture(16)
-
-
-
+DEFAULT_WIN_WIDTH = 800
+DEFAULT_WIN_HEIGHT = 450
 
 class GameView(arcade.Window):
-    def distance(self, pos):
-        return (((pos[0] - self.player_sprite.position[0]) ** 2) + ((pos[1] - self.player_sprite.position[1]) ** 2)) ** 0.5
-
-    def npc_dialogue(self):
-        for npc in self.npc_dialogues_dict:
-                if self.distance(self.npc_dialogues_dict[npc]["position"]) < 15:
-                    self.npc_dialogue_name.text = self.npc_dialogues_dict[npc]["name"]
-                    npc_data = self.npc_dialogues_dict[npc]
-                    actions_data = npc_data["actions"]
-                    self.object_given = False                  
-
-                    if isinstance(actions_data, dict):
-                        if "first_encounter" in actions_data:
-                            action_list = actions_data["first_encounter"]
-                        elif "others" in actions_data:
-                            action_list = actions_data["others"]
-                        else:
-                            action_list = actions_data.get("completed", [])
-                    else:
-                        action_list = actions_data
-
-                    dialogue_first = [x for x in self.npc_dialogues_dict[npc]["actions"]][0]
-                    dialogue_len = len(self.npc_dialogues_dict[npc]["actions"][dialogue_first])
-                    if self.npc_dialogue_index >= dialogue_len:
-                        if dialogue_first == "first_encounter" and "first_encounter" in self.npc_dialogues_dict[npc]["actions"]: 
-                            self.npc_dialogues_dict[npc]["actions"].pop("first_encounter")
-                        self.npc_dialogue_index = 0
-                        self.npc_show_dialogue = False
-                        self.can_move = True
-                        break
-                    else:
-                        self.npc_show_dialogue = True
-                        self.can_move = False
-                    
-                    print(action_list)
-                    action = action_list[self.npc_dialogue_index]
-                    self.npc_dialogue_index += 1
-
-                    if action["type"] == "finish":
-                        npc_data["completed"] = True
-                        self.npc_dialogue_index = 0
-                        self.npc_dialogues_dict[npc]["actions"].pop("others")
-                        self.npc_show_dialogue = False
-                        self.can_move = True
-
-                    if action["type"] == "dialogue":
-                        self.npc_dialogue_name.text = npc_data["name"]
-                        self.npc_dialogue_text.text = action["content"]
-                        self.npc_show_dialogue = True
-                        self.cam_mode = "player"
-                    elif action["type"] == "target":
-                        self.cam_target = action["position"]
-                        self.cam_mode = "target"
-                        move_camera_to(self.game_camera, self.cam_target[0], self.cam_target[1], self.cam_limits)
-                    elif action["type"] == "item_wait":
-                        if action["id"] in self.inventory:
-                            self.object_given = True
-                            self.inventory.remove(action["id"])
-                            self.npc_dialogue_name.text = action["name"]
-                            self.npc_dialogue_text.text = action["content"]
-                            self.npc_show_dialogue = True
-                            action = action_list[self.npc_dialogue_index]
-                        else:
-                            self.object_given = False
-                            self.npc_dialogue_index = 0
-                            self.npc_show_dialogue = False
-                            self.can_move = True
-                            break
-
-                    print(action)
-
     def __init__(self):
-        self.win_width = 800
-        self.win_height = 450
-        self.scaling = 1  # tilemap chargée à 1 pour éviter double mise à l'échelle
+        self.win_width = DEFAULT_WIN_WIDTH
+        self.win_height = DEFAULT_WIN_HEIGHT
+        self.win_scale = 1
         super().__init__(self.win_width, self.win_height, TITLE, fullscreen=False, vsync=True)
-        self.background_color = arcade.csscolor.BLACK
 
-        self.show_hitboxes = False
+        ###### Player ######
 
-        self.tile_map = None
-        self.scene = None
+        self.player_texture = arcade.load_spritesheet("assets/bobby/bobby_spritesheet.png").get_texture_grid(size = (80, 80), columns = 4, count = 20)
+
+        # Hitbox texture
+        self.player_sprite = Player(self.player_texture, scale = 0.4)
+
+        self.player_sprite.center_x, self.player_sprite.center_y = 16, 16
+
+        self.player_list = arcade.SpriteList()
+        self.player_list.append(self.player_sprite)
+
+        self.can_move = True
+        self.speed = 1
+        self.moving = False
+        self.climb_ladder = False
+
+        # Limites de déplacement
+        self.player_min_x = 0
+        self.player_min_y = 0
+        self.player_max_x, self.player_max_y = 0, 0
+
+        ###### NPCs ######
+
+        self.npc_dialogues_dict = {}
+        self.places_allowed = set()
+        self.places_allowed.add("map")
+        self.places_allowed.add("map_1")
+
+        self.npc_dialogue_name = arcade.Text("Name", 80, 110, arcade.color.WHITE, 16, font_name="Fipps")
+        self.npc_dialogue_text = arcade.Text("Dialogue", 100, 90, (0, 0, 0, 255), 12, font_name="Fipps", width=600, multiline=True)
+        self.npc_show_dialogue = False
+
+        self.npc_dialogue_index = 0
+
+        ###### Sprites annexes ######
+
+        # Chest
+
+        self.chest_texture = arcade.load_spritesheet("assets/chest_tilemap.png").get_texture_grid(size = (16, 16), columns = 2, count = 2)
+        self.chest_sprite = AnimationSprites(self.chest_texture)
+
+        # Torches
+
+        self.torch_texture = arcade.load_spritesheet("assets/torch_tilemap.png").get_texture_grid(size = (20, 20), columns = 1, count = 2)
+        self.torch_sprite1 = AnimationSprites(self.torch_texture)
+        self.torch_sprite2 = AnimationSprites(self.torch_texture)
+        self.torch_sprite3 = AnimationSprites(self.torch_texture)
+
+        self.torch_sprite1.scale = 1.5
+        self.torch_sprite2.scale = 1.5
+        self.torch_sprite3.scale = 1.5
+
+        # Ladders
+
+        self.ladders_texture = arcade.load_texture("assets/ladders.png")
+        self.ladders_sprite = arcade.Sprite(self.ladders_texture)
+
+        # Doors
+
+        self.doors_texture = arcade.load_spritesheet("assets/doors_spritesheet.png").get_texture_grid(size = (32, 32), columns = 2, count = 2)
+        self.doors_sprite = AnimationSprites(self.doors_texture)
+
+        self.doors_sprite.scale = 1.5
+
+        # Maze shadow
+
+        self.maze_shadow_texture = arcade.load_texture("assets/maze_shadow.png")
+        self.maze_shadow_sprite = arcade.Sprite(self.maze_shadow_texture, scale = 0.25)
+
+
+        # Spritelists
+
+        self.sprite_list = arcade.SpriteList()
+        self.sprite_list.append(self.chest_sprite)
+        self.sprite_list.append(self.torch_sprite1)
+        self.sprite_list.append(self.torch_sprite2)
+        self.sprite_list.append(self.torch_sprite3)
+        self.sprite_list.append(self.doors_sprite)
+
+        self.shadow_list = arcade.SpriteList()
+        self.shadow_list.append(self.maze_shadow_sprite)
+
+        self.ladders_sprite_list = arcade.SpriteList()
+        self.ladders_sprite_list.append(self.ladders_sprite)
+
         self.hitboxes = arcade.SpriteList()
 
-        self.game_camera = None
-        self.spawn_x = 0
-        self.spawn_y = 0
+        ###### Map ######
 
+        self.tile_map = None
+        self.scaling = 1 # Taille map
+        self.scene = None
+        self.show_hitboxes = False
+
+        ###### Cameras ######
+
+        self.game_camera = None
+        self.ui_camera = None
         self.camera_zoom = 2.5
-        self.cam_mode = "player"   # "player" ou "target"
+        self.cam_mode = "player"   # player, target
         self.cam_target = (0.0, 0.0)
 
         # Limites de la caméra
@@ -228,81 +140,26 @@ class GameView(arcade.Window):
         self.cam_max_y = 0
         self.cam_limits = ()
 
-        # NPCs
-        self.npc_dialogues_dict = {}
+        ###### Player spawn ######
 
-        self.npc_dialogue_name = arcade.Text("Name", 80, 110, arcade.color.WHITE, 48, font_name="Kenney Pixel")
-        self.npc_dialogue_text = arcade.Text("Dialogue", 100, 90, arcade.color.WHITE, 16, font_name="Kenney Pixel")
-        self.npc_show_dialogue = False
+        self.spawn_x = 0
+        self.spawn_y = 0
 
-        self.npc_dialogue_index = 0
-
-        # Player
-        self.player_texture = arcade.load_spritesheet("assets/bobby/bobby_spritesheet.png").get_texture_grid(size = (80, 80), columns = 4, count = 20)
-
-        ## Apply hitbox shape from a dedicated texture to the animated player sprite
-        self.player_sprite = Player(self.player_texture, scale = 0.4)
-
-        self.player_sprite.center_x, self.player_sprite.center_y = 16, 16
-        self.speed = 1
-
-        self.player_list = arcade.SpriteList()
-        self.player_list.append(self.player_sprite)
-
-        self.can_move = True
-        self.moving = False
-
-        ## Limites de déplacement
-        self.player_min_x = 0
-        self.player_min_y = 0
-        self.player_max_x, self.player_max_y = 0, 0
-
-        # Sprites annexes
-        self.sprite_list = arcade.SpriteList()
-        self.shadow_list = arcade.SpriteList()
-        self.ladders_sprite_list = arcade.SpriteList()
-
-        self.chest_texture = arcade.load_spritesheet("assets/chest_tilemap.png").get_texture_grid(size = (16, 16), columns = 2, count = 2)
-        self.chest_sprite = AnimationSprites(self.chest_texture)
-
-        self.torch_texture = arcade.load_spritesheet("assets/torch_tilemap.png").get_texture_grid(size = (20, 20), columns = 1, count = 2)
-        self.torch_sprite1 = AnimationSprites(self.torch_texture)
-        self.torch_sprite2 = AnimationSprites(self.torch_texture)
-        self.torch_sprite3 = AnimationSprites(self.torch_texture)
-        
-        self.torch_sprite1.scale = 1.5
-        self.torch_sprite2.scale = 1.5
-        self.torch_sprite3.scale = 1.5
-
-        self.ladders_texture = arcade.load_texture("assets/ladders.png")
-        self.ladders_sprite = arcade.Sprite(self.ladders_texture)
-
-        self.doors_texture = arcade.load_spritesheet("assets/doors_spritesheet.png").get_texture_grid(size = (32, 32), columns = 2, count = 2)
-        self.doors_sprite = AnimationSprites(self.doors_texture)
-
-        self.doors_sprite.scale = 1.5
-
-        self.sprite_list.append(self.chest_sprite)
-        self.sprite_list.append(self.torch_sprite1)
-        self.sprite_list.append(self.torch_sprite2)
-        self.sprite_list.append(self.torch_sprite3)
-        self.ladders_sprite_list.append(self.ladders_sprite)
-        self.sprite_list.append(self.doors_sprite)
-
-
-
-        self.maze_shadow_texture = arcade.load_texture("assets/maze_shadow.png")
-        self.maze_shadow_sprite = arcade.Sprite(self.maze_shadow_texture, scale = 0.25)
-
-        self.shadow_list.append(self.maze_shadow_sprite)
+        ###### Others ######
 
         self.physics_engine = None
-        self.level_name = "torch_trial" # map, maze_trial, torch_trial
+        self.level_name = "map" # map, maze_trial, torch_trial
         self.exit = None
         self.level_changes_dict = {}
-        self.inventory = []
+        self.inventory = set()
         self.object_given = False
+
+        # Animations
+
         self.time_elapsed = 0
+        self.time_elapsed_ladders = 0
+
+        # Enregistrement touches clavier
 
         self.keys = set()
 
@@ -329,15 +186,34 @@ class GameView(arcade.Window):
                 elif arcade.key.RIGHT  in self.keys and self.player_sprite.position[0] <= self.player_max_x: 
                     self.player_sprite.change_x = self.speed
             else:
+                self.player_sprite.change_x = 0
+                ladders_unlocked = (
+                    self.torch_sprite1.cur_texture_index == 1
+                    and self.torch_sprite2.cur_texture_index == 1
+                    and self.torch_sprite3.cur_texture_index == 1
+                )
+                ladder_entry_x = self.ladders_sprite.position[0]
+                ladder_entry_y = self.ladders_sprite.position[1] - 65
+                near_ladder_entry = (
+                    abs(self.player_sprite.position[0] - ladder_entry_x) < 12
+                    and abs(self.player_sprite.position[1] - ladder_entry_y) < 20
+                )
+
+                # Leave ladder mode when UP is released or top is reached.
+                if self.climb_ladder and (
+                    arcade.key.UP not in self.keys or self.player_sprite.position[1] >= 140
+                ):
+                    self.climb_ladder = False
+
                 if arcade.key.UP in self.keys:
-                    if self.physics_engine.can_jump():
+                    if ladders_unlocked and near_ladder_entry:
+                        self.climb_ladder = True
+                    elif not self.climb_ladder and self.physics_engine.can_jump():
                         self.player_sprite.change_y = 7
                 if arcade.key.LEFT in self.keys:
                     self.player_sprite.change_x = -self.speed
                 if arcade.key.RIGHT in self.keys:
                     self.player_sprite.change_x = self.speed
-                    
-                self.player_sprite.position = self.player_sprite.position[0], round(self.player_sprite.position[1])
             move_camera_to(self.game_camera, self.player_sprite.position[0], self.player_sprite.position[1], self.cam_limits)
         elif self.cam_mode == "target":
             move_camera_to(self.game_camera, self.cam_target[0], self.cam_target[1], self.cam_limits, speed=0.05)
@@ -346,85 +222,55 @@ class GameView(arcade.Window):
         if self.level_name == "maze_trial":
             self.maze_shadow_sprite.position = self.player_sprite.position
 
-        self.time_elapsed += delta_time
-        if self.time_elapsed > 0.3 and self.moving:
-            self.player_sprite.next_frame(self.can_move)
-            self.time_elapsed = 0
-        if not self.moving:
-            self.player_sprite.no_moving_position(self.can_move)
+        if self.level_name == "torch_trial" and self.torch_sprite1.cur_texture_index == 1 and self.torch_sprite2.cur_texture_index == 1 and self.torch_sprite3.cur_texture_index == 1:
+            self.time_elapsed_ladders += delta_time
+            if "briquet" in self.inventory:
+                self.ladders_sprite.position = self.ladders_sprite.position[0], 90
+                self.climb_ladder = False
+            elif self.time_elapsed_ladders > 0.005 and self.ladders_sprite.position[1] > 90:
+                self.ladders_sprite.position = self.ladders_sprite.position[0], self.ladders_sprite.position[1] - 1
+                self.time_elapsed_ladders = 0
+            if self.climb_ladder and self.player_sprite.position[1] < 140:
+                self.player_sprite.position = self.player_sprite.position[0], self.player_sprite.position[1] + 1
+                self.player_sprite.change_y = 0
+            else:
+                self.climb_ladder = False
 
-        self.physics_engine.update()
+        if self.npc_dialogue_text.text != "":
+            if self.npc_dialogue_text.text[-1] == "‎":
+                self.npc_dialogue_text.align = "center"
+                if self.npc_dialogue_text.color[3] > 0:
+                    self.npc_dialogue_text.color = 0, 0, 0, max(0, self.npc_dialogue_text.color[3] - round(50 * delta_time))
+                else:
+                    self.npc_show_dialogue = False
+                    self.npc_dialogue_text.color = 255, 255, 255, 0
+                    self.npc_dialogue_text.text = ""
+                    self.npc_dialogue_text.align = "left"
+        
+        self.time_elapsed += delta_time
+        if self.moving and self.can_move:
+            if self.time_elapsed >= 0.12:
+                self.player_sprite.next_frame(self.can_move)
+                self.time_elapsed = 0
+        else:
+            self.player_sprite.no_moving_position(self.can_move)
+            self.time_elapsed = 0
+       
+        if self.level_name == "torch_trial" and self.climb_ladder:
+            self.player_sprite.change_x = 0
+            self.player_sprite.change_y = 0
+        else:
+            self.physics_engine.update()
 
     def on_key_press(self, key, modifiers):
-        if key == arcade.key.F:
-            self.set_fullscreen(not self.fullscreen)
-            change_cam_limits(self)
-        if key == arcade.key.H:
-            self.show_hitboxes = not self.show_hitboxes
-        if key == arcade.key.B:
-            print(self.player_sprite.position)
-
-
-        # NPCs & level change
-        if key == arcade.key.SPACE:
-            self.npc_dialogue()
-            
-            for entrance in self.level_changes_dict:
-                try:
-                    if self.distance(self.level_changes_dict[entrance]["position"]) < 15:
-                        if self.level_name != "torch_trial" or self.doors_sprite.cur_texture_index == 1:
-                            levels.load_level(self, entrance)
-                            self.level_name = entrance
-                            self.player_sprite.position = self.spawn_x, self.spawn_y
-                            self.exit = self.level_name
-                            print(self.level_name)
-                except:
-                    pass
-
-            if self.level_name == "maze_trial":
-                if self.distance(self.chest_sprite.position) < 15:
-                    if self.can_move and self.chest_sprite.cur_texture_index == 0:
-                        self.chest_sprite.set_texture(1)
-                        self.can_move = False
-                        self.npc_dialogue_name.text = "Nouvel objet!"
-                        self.npc_dialogue_text.text = "Vous obtenez une potion rouge. Attendez, ne serait-ce pas du sang???"
-                        self.inventory.append("potion_rouge")
-                        self.npc_show_dialogue = True
-                        self.cam_mode = "player"
-                    else:
-                        self.can_move = True
-                        self.npc_show_dialogue = False
-                    
-            if self.level_name == "torch_trial":
-                if self.distance((self.torch_sprite1.position[0], self.torch_sprite1.position[1] - 16))  < 15 and self.torch_sprite1.cur_texture_index == 0:
-                    self.torch_sprite1.set_texture(1)
-                if self.distance((self.torch_sprite2.position[0], self.torch_sprite2.position[1] - 16))  < 15 and self.torch_sprite2.cur_texture_index == 0:
-                    self.torch_sprite2.set_texture(1)
-                if self.distance((self.torch_sprite3.position[0], self.torch_sprite3.position[1] - 16))  < 15 and self.torch_sprite3.cur_texture_index == 0:
-                    self.torch_sprite3.set_texture(1)
-                if self.torch_sprite1.cur_texture_index == 1 and self.torch_sprite2.cur_texture_index == 1 and self.torch_sprite3.cur_texture_index == 1:
-                    self.doors_sprite.set_texture(1)
-
-        if key in (arcade.key.UP, arcade.key.DOWN, arcade.key.LEFT, arcade.key.RIGHT):
-            if self.level_name != "torch_trial":
-                if self.keys == set():
-                    self.keys.add(key)
-                    if key == arcade.key.UP: self.player_sprite.state = "back" 
-                    if key == arcade.key.DOWN: self.player_sprite.state = "front"
-                    if key == arcade.key.LEFT: self.player_sprite.state = "left" 
-                    if key == arcade.key.RIGHT: self.player_sprite.state = "right"
-            else:
-                self.keys.add(key)
-                if key == arcade.key.LEFT: self.player_sprite.state = "left" 
-                if key == arcade.key.RIGHT: self.player_sprite.state = "right"
-            self.moving = True
+        key_press(self, key, modifiers)        
 
     def on_key_release(self, key, modifiers):
         if key in (arcade.key.UP, arcade.key.DOWN, arcade.key.LEFT, arcade.key.RIGHT):
             if self.level_name == "torch_trial":
                 self.player_sprite.change_x = 0
             self.keys.discard(key)
-            self.moving = False
+            self.moving = bool(self.keys) # False si self.keys est vide
 
 
 def main():
@@ -435,4 +281,8 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+
+
 
