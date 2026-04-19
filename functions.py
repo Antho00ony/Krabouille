@@ -1,4 +1,5 @@
 import arcade
+
 import main
 
 clamp = lambda minimum, maximum, x : max(minimum, min(x, maximum))

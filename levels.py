@@ -1,5 +1,5 @@
 import arcade
-import main, npc_dialogues
+import main, npc_dialogues, functions
 
 def define_player(self, hitbox_name, _scale: float = 0.4):
     # Player
@@ -30,7 +30,9 @@ def load_level(self, name):
         self.tile_map = arcade.load_tilemap("assets/maps/map.json", scaling = self.scaling)
         define_player(self, name)
 
-        main.change_cam_limits(self)
+        functions.change_cam_limits(self)
+
+        self.sprite_list.append(self.castle_doors_sprite)
 
         self.level_changes_dict = {}
         self.npc_dialogues_dict = {}
@@ -51,6 +53,9 @@ def load_level(self, name):
                 })
             if obj.name in ("torch_trial", "maze_trial"):
                 self.level_changes_dict.update({obj.name: {"position": (obj.shape[0], obj.shape[1])}})
+            if obj.name == "castle_doors":
+                self.castle_doors_sprite.position = obj.shape[0] + 16, obj.shape[1] + 8
+
 
         if self.exit == "maze_trial":
             self.spawn_x, self.spawn_y = self.level_changes_dict["maze_trial"]["position"]
@@ -77,15 +82,9 @@ def load_level(self, name):
         self.tile_map = arcade.load_tilemap("assets/maps/maze_trial.json", scaling = self.scaling)
         define_player(self, name)
 
-        main.change_cam_limits(self)
+        functions.change_cam_limits(self)
 
-        try:
-            self.sprite_list.remove(self.doors_sprite)
-            self.sprite_list.remove(self.torch_sprite1)
-            self.sprite_list.remove(self.torch_sprite2)
-            self.sprite_list.remove(self.torch_sprite3)
-        except:
-            pass
+        self.sprite_list.append(self.chest_sprite)
 
         self.npc_dialogues_dict = {}
         self.level_changes_dict = {}
@@ -131,7 +130,13 @@ def load_level(self, name):
             self.tile_map = arcade.load_tilemap("assets/maps/torch_trial.json", scaling = self.scaling)
             define_player(self, name)
 
-            main.change_cam_limits(self)
+            self.sprite_list.append(self.doors_sprite)
+            self.sprite_list.append(self.torch_sprite1)
+            self.sprite_list.append(self.torch_sprite2)
+            self.sprite_list.append(self.torch_sprite3)
+            self.sprite_list.append(self.chest_sprite)
+                
+            functions.change_cam_limits(self)
 
             self.npc_dialogues_dict = {}
             self.level_changes_dict = {}
@@ -183,6 +188,7 @@ def draw_level(self, name):
         self.scene["rails"].draw()
         self.scene["walls"].draw()
         self.scene["doors"].draw()
+        self.sprite_list.draw()
         self.scene["gravestones"].draw()
         self.scene["pnjs"].draw()
         self.scene["minecarts"].draw()

@@ -1,9 +1,8 @@
 import arcade
 from arcade import gl
 
-import levels
+import levels, functions
 from classes import *
-from functions import *
 from on_key_press import key_press
 
 arcade.SpriteList.DEFAULT_TEXTURE_FILTER = gl.NEAREST, gl.NEAREST
@@ -92,6 +91,11 @@ class GameView(arcade.Window):
         self.doors_sprite = AnimationSprites(self.doors_texture)
 
         self.doors_sprite.scale = 1.5
+        
+        self.castle_doors_texture = arcade.load_spritesheet("assets/castle_doors_spritesheet.png").get_texture_grid(size = (32, 16), columns = 6, count = 84)
+        self.castle_doors_sprite = AnimationSprites(self.castle_doors_texture)
+
+        self.castle_doors_sprite.set_texture(0) # 0 = fermé, 1 = ouvert
 
         # Maze shadow
 
@@ -102,11 +106,6 @@ class GameView(arcade.Window):
         # Spritelists
 
         self.sprite_list = arcade.SpriteList()
-        self.sprite_list.append(self.chest_sprite)
-        self.sprite_list.append(self.torch_sprite1)
-        self.sprite_list.append(self.torch_sprite2)
-        self.sprite_list.append(self.torch_sprite3)
-        self.sprite_list.append(self.doors_sprite)
 
         self.shadow_list = arcade.SpriteList()
         self.shadow_list.append(self.maze_shadow_sprite)
@@ -153,6 +152,7 @@ class GameView(arcade.Window):
         self.level_changes_dict = {}
         self.inventory = set()
         self.object_given = False
+        self.castle_door_opened = False
 
         # Animations
 
@@ -214,9 +214,9 @@ class GameView(arcade.Window):
                     self.player_sprite.change_x = -self.speed
                 if arcade.key.RIGHT in self.keys:
                     self.player_sprite.change_x = self.speed
-            move_camera_to(self.game_camera, self.player_sprite.position[0], self.player_sprite.position[1], self.cam_limits)
+            functions.move_camera_to(self.game_camera, self.player_sprite.position[0], self.player_sprite.position[1], self.cam_limits)
         elif self.cam_mode == "target":
-            move_camera_to(self.game_camera, self.cam_target[0], self.cam_target[1], self.cam_limits, speed=0.05)
+            functions.move_camera_to(self.game_camera, self.cam_target[0], self.cam_target[1], self.cam_limits, speed=0.05)
             
 
         if self.level_name == "maze_trial":
@@ -256,6 +256,11 @@ class GameView(arcade.Window):
             self.player_sprite.no_moving_position(self.can_move)
             self.time_elapsed = 0
        
+        if "cle" in self.inventory:
+            self.castle_doors_sprite.set_texture(1)
+            self.castle_door_opened = True
+            self.inventory.remove("cle")
+
         if self.level_name == "torch_trial" and self.climb_ladder:
             self.player_sprite.change_x = 0
             self.player_sprite.change_y = 0

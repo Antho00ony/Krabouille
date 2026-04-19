@@ -1,5 +1,6 @@
 import arcade
-from functions import *
+
+import functions
 
 
 
@@ -38,22 +39,22 @@ class Player(arcade.Sprite):
                 if self.cur_texture_index >= 7:
                     self.set_texture(4)
                 else:
-                    self.set_texture(clamp(4, 7, self.cur_texture_index + 1))
+                    self.set_texture(functions.clamp(4, 7, self.cur_texture_index + 1))
             elif self.state == "back":
                 if self.cur_texture_index >= 11:
                     self.set_texture(8)
                 else:
-                    self.set_texture(clamp(8, 11, self.cur_texture_index + 1))
+                    self.set_texture(functions.clamp(8, 11, self.cur_texture_index + 1))
             elif self.state == "left":
                 if self.cur_texture_index >= 15:
                     self.set_texture(12)
                 else:
-                    self.set_texture(clamp(12, 15, self.cur_texture_index + 1))
+                    self.set_texture(functions.clamp(12, 15, self.cur_texture_index + 1))
             elif self.state == "right":
                 if self.cur_texture_index >= 19:
                     self.set_texture(16)
                 else:
-                    self.set_texture(clamp(16, 19, self.cur_texture_index + 1))
+                    self.set_texture(functions.clamp(16, 19, self.cur_texture_index + 1))
 
     def no_moving_position(self, can_move):
         if can_move:
