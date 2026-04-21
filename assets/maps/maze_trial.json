@@ -435,6 +435,12 @@
                  "id":22,
                  "name":"map",
                  "point":true,
+                 "properties":[
+                        {
+                         "name":"location",
+                         "type":"string",
+                         "value":"map"
+                        }],
                  "rotation":0,
                  "type":"",
                  "visible":true,
@@ -476,7 +482,7 @@
  "nextobjectid":26,
  "orientation":"orthogonal",
  "renderorder":"right-down",
- "tiledversion":"1.11.2",
+ "tiledversion":"1.11.0",
  "tileheight":16,
  "tilesets":[
         {

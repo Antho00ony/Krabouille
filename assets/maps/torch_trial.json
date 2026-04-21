@@ -200,6 +200,12 @@
                  "id":24,
                  "name":"map",
                  "point":true,
+                 "properties":[
+                        {
+                         "name":"location",
+                         "type":"string",
+                         "value":"map"
+                        }],
                  "rotation":0,
                  "type":"",
                  "visible":true,
@@ -224,6 +230,12 @@
                  "id":29,
                  "name":"map_1",
                  "point":true,
+                 "properties":[
+                        {
+                         "name":"location",
+                         "type":"string",
+                         "value":"map"
+                        }],
                  "rotation":0,
                  "type":"",
                  "visible":true,
@@ -252,7 +264,7 @@
  "nextobjectid":31,
  "orientation":"orthogonal",
  "renderorder":"right-down",
- "tiledversion":"1.11.2",
+ "tiledversion":"1.11.0",
  "tileheight":16,
  "tilesets":[
         {

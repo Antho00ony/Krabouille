@@ -20,7 +20,7 @@ def change_cam_limits(self):
         scale = min(scale_x, scale_y)
         adapted_zoom = self.camera_zoom * scale
 
-        self.npc_dialogue_text.width = 600 * self.win_width / main.DEFAULT_WIN_WIDTH
+        self.npc_dialogue_text.width = 500 * self.win_width / main.DEFAULT_WIN_WIDTH
 
         self.game_camera = arcade.Camera2D(zoom=adapted_zoom)
         self.game_camera.position = self.player_sprite.position
@@ -45,13 +45,16 @@ def change_cam_limits(self):
         # Keep dialogue text compact with the custom pixel font.
         self.npc_dialogue_name.font_size = max(10, int(round(16 * scale)))
         self.npc_dialogue_text.font_size = max(6, int(round(10 * scale)))
-        self.npc_dialogue_name.position = int(round(80 * scale_x)), int(round(110 * scale_y))
-        self.npc_dialogue_text.position = int(round(100 * scale_x)), int(round(90 * scale_y))
+        self.npc_dialogue_name.position = int(round(150 * scale_x)), int(round(130 * scale_y))
+        self.npc_dialogue_text.position = int(round(160 * scale_x)), int(round(100 * scale_y))
+        self.npc_dialogue_background.scale = 1.6 * scale
+        self.npc_dialogue_background.position = self.win_width / 2, int(round(90 * scale_y))
 
 def npc_dialogue(self):
+    self.npc_dialogue_background.color = self.npc_dialogue_background.color[0], self.npc_dialogue_background.color[1], self.npc_dialogue_background.color[2], 150
     for npc in self.npc_dialogues_dict:
         if distance(self.player_sprite.position, self.npc_dialogues_dict[npc]["position"]) < 15:
-            self.npc_dialogue_text.color = 255, 255, 255, 255
+            self.npc_dialogue_text.color = self.npc_dialogue_text.color[0], self.npc_dialogue_text.color[1], self.npc_dialogue_text.color[2], 255
             self.npc_dialogue_text.align = "left"
             self.npc_dialogue_name.text = self.npc_dialogues_dict[npc]["name"]
             if self.npc_dialogues_dict[npc]["place"] is not None:
@@ -108,6 +111,7 @@ def npc_dialogue(self):
                 if action["id"] in self.inventory:
                     self.object_given = True
                     self.inventory.remove(action["id"])
+                    self.inventory.add(action["item_given"])
                     self.npc_dialogue_name.text = action["name"]
                     self.npc_dialogue_text.text = action["content"]
                     self.npc_show_dialogue = True

@@ -56,9 +56,14 @@ class GameView(arcade.Window):
         self.places_allowed.add("map")
         self.places_allowed.add("map_1")
 
-        self.npc_dialogue_name = arcade.Text("Name", 80, 110, arcade.color.WHITE, 16, font_name="Fipps")
-        self.npc_dialogue_text = arcade.Text("Dialogue", 100, 90, (0, 0, 0, 255), 12, font_name="Fipps", width=600, multiline=True)
+        self.npc_dialogue_name = arcade.Text("Name", 0, 0, (255, 255, 255, 255), 16, font_name="Fipps") # position dans functions.py ==> change_cam_limits()
+        self.npc_dialogue_text = arcade.Text("Dialogue", 0, 0, (255, 255, 255, 255), 10, font_name="Fipps", width=500, multiline=True)
         self.npc_show_dialogue = False
+
+        self.npc_dialogue_background = arcade.Sprite(arcade.load_texture("assets/dialogue_background.png"))
+
+        self.npc_dialogue_background_list = arcade.SpriteList()
+        self.npc_dialogue_background_list.append(self.npc_dialogue_background)
 
         self.npc_dialogue_index = 0
 
@@ -147,12 +152,13 @@ class GameView(arcade.Window):
         ###### Others ######
 
         self.physics_engine = None
-        self.level_name = "map" # map, maze_trial, torch_trial
+        self.level_name = "castle" # map, maze_trial, torch_trial, castle
         self.exit = None
         self.level_changes_dict = {}
         self.inventory = set()
         self.object_given = False
         self.castle_door_opened = False
+        self.ladders_unlocked = False
 
         # Animations
 
@@ -187,11 +193,7 @@ class GameView(arcade.Window):
                     self.player_sprite.change_x = self.speed
             else:
                 self.player_sprite.change_x = 0
-                ladders_unlocked = (
-                    self.torch_sprite1.cur_texture_index == 1
-                    and self.torch_sprite2.cur_texture_index == 1
-                    and self.torch_sprite3.cur_texture_index == 1
-                )
+                self.ladders_unlocked = self.torch_sprite1.cur_texture_index == 1 and self.torch_sprite2.cur_texture_index == 1 and self.torch_sprite3.cur_texture_index == 1
                 ladder_entry_x = self.ladders_sprite.position[0]
                 ladder_entry_y = self.ladders_sprite.position[1] - 65
                 near_ladder_entry = (
@@ -200,13 +202,13 @@ class GameView(arcade.Window):
                 )
 
                 # Leave ladder mode when UP is released or top is reached.
-                if self.climb_ladder and (
-                    arcade.key.UP not in self.keys or self.player_sprite.position[1] >= 140
-                ):
+                if self.climb_ladder and arcade.key.UP not in self.keys or self.player_sprite.position[1] >= 140:
                     self.climb_ladder = False
 
                 if arcade.key.UP in self.keys:
-                    if ladders_unlocked and near_ladder_entry:
+                    if self.ladders_unlocked and near_ladder_entry:
+                        self.player_sprite.state = "back"
+                        self.player_sprite.set_texture(8)
                         self.climb_ladder = True
                     elif not self.climb_ladder and self.physics_engine.can_jump():
                         self.player_sprite.change_y = 7
@@ -222,13 +224,13 @@ class GameView(arcade.Window):
         if self.level_name == "maze_trial":
             self.maze_shadow_sprite.position = self.player_sprite.position
 
-        if self.level_name == "torch_trial" and self.torch_sprite1.cur_texture_index == 1 and self.torch_sprite2.cur_texture_index == 1 and self.torch_sprite3.cur_texture_index == 1:
+        if self.level_name == "torch_trial" and self.ladders_unlocked:
             self.time_elapsed_ladders += delta_time
-            if "briquet" in self.inventory:
+            if "statue" in self.inventory:
                 self.ladders_sprite.position = self.ladders_sprite.position[0], 90
                 self.climb_ladder = False
-            elif self.time_elapsed_ladders > 0.005 and self.ladders_sprite.position[1] > 90:
-                self.ladders_sprite.position = self.ladders_sprite.position[0], self.ladders_sprite.position[1] - 1
+            elif self.time_elapsed_ladders > 0.01 and self.ladders_sprite.position[1] > 90:
+                self.ladders_sprite.position = self.ladders_sprite.position[0], self.ladders_sprite.position[1] - 0.5
                 self.time_elapsed_ladders = 0
             if self.climb_ladder and self.player_sprite.position[1] < 140:
                 self.player_sprite.position = self.player_sprite.position[0], self.player_sprite.position[1] + 1
@@ -240,15 +242,20 @@ class GameView(arcade.Window):
             if self.npc_dialogue_text.text[-1] == "‎":
                 self.npc_dialogue_text.align = "center"
                 if self.npc_dialogue_text.color[3] > 0:
-                    self.npc_dialogue_text.color = 0, 0, 0, max(0, self.npc_dialogue_text.color[3] - round(50 * delta_time))
+                    self.npc_dialogue_text.color = self.npc_dialogue_text.color[0], self.npc_dialogue_text.color[1], self.npc_dialogue_text.color[2], max(0, self.npc_dialogue_text.color[3] - round(50 * delta_time))
+                    self.npc_dialogue_background.color = self.npc_dialogue_background.color[0], self.npc_dialogue_background.color[1], self.npc_dialogue_background.color[2], 0
                 else:
                     self.npc_show_dialogue = False
-                    self.npc_dialogue_text.color = 255, 255, 255, 0
+                    self.npc_dialogue_text.color = self.npc_dialogue_text.color[0], self.npc_dialogue_text.color[1], self.npc_dialogue_text.color[2], 0
                     self.npc_dialogue_text.text = ""
                     self.npc_dialogue_text.align = "left"
         
         self.time_elapsed += delta_time
-        if self.moving and self.can_move:
+        if self.level_name == "torch_trial" and self.climb_ladder:
+            self.player_sprite.state = "back"
+            self.player_sprite.set_texture(8)
+            self.time_elapsed = 0
+        elif self.moving and self.can_move:
             if self.time_elapsed >= 0.12:
                 self.player_sprite.next_frame(self.can_move)
                 self.time_elapsed = 0
@@ -256,10 +263,10 @@ class GameView(arcade.Window):
             self.player_sprite.no_moving_position(self.can_move)
             self.time_elapsed = 0
        
-        if "cle" in self.inventory:
+        if "castle_doors" in self.inventory:
             self.castle_doors_sprite.set_texture(1)
             self.castle_door_opened = True
-            self.inventory.remove("cle")
+            self.inventory.remove("castle_doors")
 
         if self.level_name == "torch_trial" and self.climb_ladder:
             self.player_sprite.change_x = 0

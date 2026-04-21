@@ -3,32 +3,53 @@ import arcade
 import functions, levels, main
 
 def key_press(self, key, modifiers):
-    if key == arcade.key.F:
-        self.set_fullscreen(not self.fullscreen)
-        functions.change_cam_limits(self)
-    if key == arcade.key.H:
-        self.show_hitboxes = not self.show_hitboxes
-    if key == arcade.key.B:
-        print(self.player_sprite.position)
-        self.places_allowed.add("maze_trial")
-        self.places_allowed.add("torch_trial")
-        print(self.places_allowed)
-        self.inventory.add("potion_rouge")
-        self.inventory.add("briquet")
-        self.inventory.add("statue")
-        self.inventory.add("cle")
-        print(self.inventory)
 
+    match key:
+        case arcade.key.F:
+            self.set_fullscreen(not self.fullscreen)
+            functions.change_cam_limits(self)
+
+        case arcade.key.H:
+            self.show_hitboxes = not self.show_hitboxes
+
+        case arcade.key.D:
+            self.places_allowed.add("maze_trial")
+            self.places_allowed.add("torch_trial")
+            self.places_allowed.add("map")
+            print(self.places_allowed)
+
+        case arcade.key.P:
+            print(self.player_sprite.position)
+
+        case arcade.key.S:
+            self.speed = 3 if self.speed == 1 else 1
+
+        case arcade.key.M:
+            self.physics_engine.walls = self.hitboxes if self.physics_engine.walls == [] else None                
+
+        case arcade.key.NUM_1:
+            self.inventory.add("potion_rouge")
+            print(self.inventory)
+
+        case arcade.key.NUM_2:
+            self.inventory.add("briquet")
+            print(self.inventory)
+
+        case arcade.key.NUM_3:
+            self.inventory.add("statue")
+            print(self.inventory)
+
+        case arcade.key.NUM_4:
+            self.inventory.add("cle")
+            print(self.inventory)
 
     # NPCs & level change
     if key == arcade.key.SPACE:
         for entrance, data in list(self.level_changes_dict.items()):
             if entrance in self.places_allowed and functions.distance(self.player_sprite.position, data["position"]) <= 15:
-                if entrance == "map_1":
-                    target = "map"
-                    self.exit = "torch_trial"
-                elif entrance != "castle":
-                    target = entrance
+                if entrance != "castle":
+                    print(entrance, data)
+                    target = data["location"]
                     self.exit = self.level_name
                     self.npc_show_dialogue = False
                     levels.load_level(self, target)
@@ -39,7 +60,7 @@ def key_press(self, key, modifiers):
                 self.npc_dialogue_text.align = "center"
                 self.npc_dialogue_name.text = ""
                 self.npc_dialogue_text.text = "Vous n'avez pas encore accès à cette zone, parlez d'abord au personnage associé.‎"
-                self.npc_dialogue_text.color = 0, 0, 0, 255
+                self.npc_dialogue_text.color = self.npc_dialogue_text.color[0], self.npc_dialogue_text.color[1], self.npc_dialogue_text.color[2], 255
                 self.npc_show_dialogue = True
 
         functions.npc_dialogue(self)
@@ -85,7 +106,7 @@ def key_press(self, key, modifiers):
                 self.npc_dialogue_text.align = "center"
                 self.npc_dialogue_name.text = ""
                 self.npc_dialogue_text.text = "Il vous faut un briquet.‎"
-                self.npc_dialogue_text.color = 0, 0, 0, 255
+                self.npc_dialogue_text.color = self.npc_dialogue_text.color[0], self.npc_dialogue_text.color[1], self.npc_dialogue_text.color[2], 255
                 self.npc_show_dialogue = True
 
     if key in (arcade.key.UP, arcade.key.DOWN, arcade.key.LEFT, arcade.key.RIGHT):

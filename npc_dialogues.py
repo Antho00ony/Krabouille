@@ -2,12 +2,12 @@ import main
 
 npc_dialogues_dict = {
     "wizard": {
-        "name": "Krabouille le sorcier",
+        "name": "Krabouille",
         "position": (None, None),
         "completed": False,
-        "place": None,
+        "place": "castle",
         "actions": {
-            "others": [
+            "first_encounter": [
                 {
                     "type": "dialogue",
                     "content": "Je suis Krabouille le sorcier."
@@ -22,7 +22,7 @@ npc_dialogues_dict = {
                 },
                 {
                     "type": "dialogue",
-                    "content": "On va voir si tu rigoles encore longtemps."
+                    "content": "On va voir si tu vas rigoler encore longtemps."
                 },
                 {
                     "type": "dialogue",
@@ -34,7 +34,7 @@ npc_dialogues_dict = {
                 },
                 {
                     "type": "target",
-                    "position": (240, 214)
+                    "position": (416, 316)
                 },
                 {
                     "type": "dialogue",
@@ -59,7 +59,7 @@ npc_dialogues_dict = {
                     "id": "cle",
                     "name": "Intentional Game Design",
                     "content": "Vous donnez la clé. Vous pouvez désormais entrer dans le château.",
-                    "item_given": "None"
+                    "item_given": "castle_doors"
                 },
                 {
                     "type": "dialogue",

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="57" height="40" tilewidth="16" tileheight="16" infinite="0" nextlayerid="18" nextobjectid="18">
+<map version="1.10" tiledversion="1.11.0" orientation="orthogonal" renderorder="right-down" width="57" height="40" tilewidth="16" tileheight="16" infinite="0" nextlayerid="18" nextobjectid="18">
  <editorsettings>
   <export target="map.json" format="json"/>
  </editorsettings>
@@ -590,15 +590,24 @@
    <point/>
   </object>
   <object id="13" name="torch_trial" x="239.667" y="425.667">
+   <properties>
+    <property name="location" value="torch_trial"/>
+   </properties>
    <point/>
   </object>
   <object id="14" name="maze_trial" x="248.333" y="152">
+   <properties>
+    <property name="location" value="maze_trial"/>
+   </properties>
    <point/>
   </object>
   <object id="16" name="castle_doors" x="400" y="416">
    <point/>
   </object>
   <object id="17" name="castle" x="416" y="416">
+   <properties>
+    <property name="location" value="castle"/>
+   </properties>
    <point/>
   </object>
  </objectgroup>

@@ -740,6 +740,12 @@
                  "id":13,
                  "name":"torch_trial",
                  "point":true,
+                 "properties":[
+                        {
+                         "name":"location",
+                         "type":"string",
+                         "value":"torch_trial"
+                        }],
                  "rotation":0,
                  "type":"",
                  "visible":true,
@@ -752,6 +758,12 @@
                  "id":14,
                  "name":"maze_trial",
                  "point":true,
+                 "properties":[
+                        {
+                         "name":"location",
+                         "type":"string",
+                         "value":"maze_trial"
+                        }],
                  "rotation":0,
                  "type":"",
                  "visible":true,
@@ -776,6 +788,12 @@
                  "id":17,
                  "name":"castle",
                  "point":true,
+                 "properties":[
+                        {
+                         "name":"location",
+                         "type":"string",
+                         "value":"castle"
+                        }],
                  "rotation":0,
                  "type":"",
                  "visible":true,
@@ -793,7 +811,7 @@
  "nextobjectid":18,
  "orientation":"orthogonal",
  "renderorder":"right-down",
- "tiledversion":"1.11.2",
+ "tiledversion":"1.11.0",
  "tileheight":16,
  "tilesets":[
         {
