@@ -7,7 +7,6 @@ def key_press(self, key, modifiers):
     match key:
         case arcade.key.F:
             self.set_fullscreen(not self.fullscreen)
-            functions.change_cam_limits(self)
 
         case arcade.key.H:
             self.show_hitboxes = not self.show_hitboxes
@@ -16,6 +15,7 @@ def key_press(self, key, modifiers):
             self.places_allowed.add("maze_trial")
             self.places_allowed.add("torch_trial")
             self.places_allowed.add("map")
+            self.places_allowed.add("castle")
             print(self.places_allowed)
 
         case arcade.key.P:
@@ -25,7 +25,7 @@ def key_press(self, key, modifiers):
             self.speed = 3 if self.speed == 1 else 1
 
         case arcade.key.M:
-            self.physics_engine.walls = self.hitboxes if self.physics_engine.walls == [] else None                
+            self.physics_engine.walls = self.hitboxes if self.physics_engine.walls == [] else None
 
         case arcade.key.NUM_1:
             self.inventory.add("potion_rouge")
@@ -43,18 +43,43 @@ def key_press(self, key, modifiers):
             self.inventory.add("cle")
             print(self.inventory)
 
+        case arcade.key.NUM_5:
+            self.inventory.add("baguette_magique")
+            print(self.inventory)
+
+        case arcade.key.NUM_6:
+            self.inventory.add("family")
+            print(self.inventory)
+
+        case arcade.key.L:
+            print(self.level_name)
+
+        case arcade.key.K:
+            self.transition = "in"
+
+    # Dialogue key_wait handling:
+    # expected key => continue action, any other key => skip.
+    if self.npc_waiting_key is not None:
+        if key == self.npc_waiting_key:
+            functions.npc_dialogue(self, key)
+        else:
+            self.npc_waiting_key = None
+            self.npc_dialogue_index = 0
+            self.npc_show_dialogue = False
+            self.can_move = True
+        return
+
     # NPCs & level change
     if key == arcade.key.SPACE:
         for entrance, data in list(self.level_changes_dict.items()):
             if entrance in self.places_allowed and functions.distance(self.player_sprite.position, data["position"]) <= 15:
-                if entrance != "castle":
+                if entrance != "castle" or self.castle_doors_sprite.cur_texture_index == 1:
                     print(entrance, data)
-                    target = data["location"]
+                    self.target = data["location"]
                     self.exit = self.level_name
                     self.npc_show_dialogue = False
-                    levels.load_level(self, target)
-                    self.level_name = target
-                    self.player_sprite.position = (self.spawn_x, self.spawn_y)
+                    self.pending_action = "level_change"
+                    self.transition = "in"
                     break
             elif functions.distance(self.player_sprite.position, data["position"]) <= 15:
                 self.npc_dialogue_text.align = "center"
@@ -63,26 +88,40 @@ def key_press(self, key, modifiers):
                 self.npc_dialogue_text.color = self.npc_dialogue_text.color[0], self.npc_dialogue_text.color[1], self.npc_dialogue_text.color[2], 255
                 self.npc_show_dialogue = True
 
-        functions.npc_dialogue(self)
+        functions.npc_dialogue(self, key)
 
         if functions.distance(self.player_sprite.position, self.chest_sprite.position) < 15:
-            if self.can_move and self.chest_sprite.cur_texture_index == 0:
-                self.chest_sprite.set_texture(1)
-                self.can_move = False
-                self.player_sprite.change_x = 0
-                self.player_sprite.change_y = 0
-                self.npc_dialogue_name.text = "Nouvel objet!"
-                if self.level_name == "maze_trial":
-                    self.npc_dialogue_text.text = "Vous obtenez une potion rouge. Attendez, ne serait-ce pas du sang???"
-                    self.inventory.add("potion_rouge")
-                elif self.level_name == "torch_trial":
-                    self.npc_dialogue_text.text = "Vous obtenez une statue. C'est lourd."
-                    self.inventory.add("statue")
-                self.npc_show_dialogue = True
-                self.cam_mode = "player"
+            if self.level_name == "castle":
+                if self.can_move and "baguette_magique" not in self.inventory and self.chest_sprite.cur_texture_index == 1:
+                    self.can_move = False
+                    self.player_sprite.change_x = 0
+                    self.player_sprite.change_y = 0
+                    self.npc_dialogue_name.text = "Nouvel objet!"
+                    self.npc_dialogue_text.text = "Vous obtenez une baguette magique."
+                    self.inventory.add("baguette_magique")
+                    self.npc_show_dialogue = True
+                    self.cam_mode = "player"
+                else:
+                    self.npc_show_dialogue = False
+                    self.can_move = self.can_move = True
             else:
-                self.npc_show_dialogue = False
-                self.can_move = self.can_move = True
+                if self.can_move and self.chest_sprite.cur_texture_index == 0:
+                    self.chest_sprite.set_texture(1)
+                    self.can_move = False
+                    self.player_sprite.change_x = 0
+                    self.player_sprite.change_y = 0
+                    self.npc_dialogue_name.text = "Nouvel objet!"
+                    if self.level_name == "maze_trial":
+                        self.npc_dialogue_text.text = "Vous obtenez une potion rouge. Attendez, ne serait-ce pas du sang???"
+                        self.inventory.add("potion_rouge")
+                    elif self.level_name == "torch_trial":
+                        self.npc_dialogue_text.text = "Vous obtenez une statue. C'est lourd."
+                        self.inventory.add("statue")
+                    self.npc_show_dialogue = True
+                    self.cam_mode = "player"
+                else:
+                    self.npc_show_dialogue = False
+                    self.can_move = self.can_move = True
 
         
         if self.level_name == "torch_trial":

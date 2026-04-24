@@ -1,4 +1,4 @@
-import main
+import main, arcade
 
 npc_dialogues_dict = {
     "wizard": {
@@ -34,7 +34,7 @@ npc_dialogues_dict = {
                 },
                 {
                     "type": "target",
-                    "position": (416, 316)
+                    "position": (350, 205)
                 },
                 {
                     "type": "dialogue",
@@ -66,7 +66,8 @@ npc_dialogues_dict = {
                     "content": "Bonne chance, ramène moi ma baguette magique et tu reverras ta famille..."
                 },
                 {
-                    "type": "finish"
+                    "type": "finish",
+                    "action": None
                 }
             ],
                 "completed": [
@@ -77,9 +78,13 @@ npc_dialogues_dict = {
                     {
                         "type": "item_wait",
                         "id": "baguette_magique",
-                        "name": "Krabouille le sorcier",
+                        "name": "Krabouille",
                         "content": "Bien. Voilà ta famille...",
-                        "item_given": "family"
+                        "item_given": None
+                    },
+                    {
+                        "type": "item_give",
+                        "id": "family"
                     }
             ]
         }
@@ -110,7 +115,7 @@ npc_dialogues_dict = {
                 },
                 {
                     "type": "target",
-                    "position": (240, 214)
+                    "position": (162, 104)
                 },
                 {
                     "type": "dialogue",
@@ -134,7 +139,8 @@ npc_dialogues_dict = {
                     "content": "Prends la clé et laisse-moi reposer en paix."
                 },
                 {
-                    "type": "finish"
+                    "type": "finish",
+                    "action": None
                 }
             ],
                 "completed": [
@@ -170,7 +176,7 @@ npc_dialogues_dict = {
                     },
                     {
                         "type": "dialogue",
-                        "content": "Bref, peux-tu me ramener une potion rouge? J'en ai besoin pour me substenter des mes besoins."
+                        "content": "Bref, peux-tu me ramener une potion rouge? Il me la faut pour pouvoir me substenter des mes besoins."
                     },
                     {
                         "type": "dialogue",
@@ -178,7 +184,7 @@ npc_dialogues_dict = {
                     },
                     {
                         "type": "target",
-                        "position": (248, 485)
+                        "position": (168, 375)
                     },
                     {
                         "type": "dialogue",
@@ -202,7 +208,8 @@ npc_dialogues_dict = {
                         "content": "Merci! En échange, voilà mon briquet. Je n'en ai plus besoin."
                     },
                     {
-                        "type": "finish"
+                        "type": "finish",
+                        "action": None
                     }
                 ],
                 "completed": [
@@ -229,7 +236,8 @@ npc_dialogues_dict = {
                     "content": "Va le voir."
                 },
                 {
-                    "type": "finish"
+                    "type": "finish",
+                    "action": None
                 }
             ],
             "completed": [
@@ -260,7 +268,8 @@ npc_dialogues_dict = {
                     "content": "Qu'est-ce qu'il y a dans le coffre? Bah je sais pas vas-y toi. T'es le seul à pouvoir bouger."
                 },
                 {
-                    "type": "finish"
+                    "type": "finish",
+                    "action": None
                 }
             ],
             "completed": [
@@ -270,7 +279,53 @@ npc_dialogues_dict = {
                 }
             ]
         }
-    }
+    },
+    "reset_guard": {
+            "name": "Gardien",
+            "position": (None, None),
+            "completed": False,
+            "place": None,
+            "actions": {
+                "others": [
+                    {
+                        "type": "dialogue",
+                        "content": "..."
+                    },
+                    {
+                        "type": "dialogue",
+                        "content": "Quoi? Tu veux la baguette magique?"
+                    },
+                    {
+                        "type": "dialogue",
+                        "content": "Résous ce puzzle et le coffre s'ouvrira, avec la baguette magique dedans."
+                    },
+                    {
+                        "type": "dialogue",
+                        "content": "Replace les tuiles au bon endroit en les poussant pour relier le point et la croix."
+                    },
+                    {
+                        "type": "dialogue",
+                        "content": "Demande-moi si tu veux réinitialiser le puzzle."
+                    },
+                    {
+                        "type": "finish",
+                        "action": "show_puzzle"
+                    }
+                ],
+                "completed": [
+                    {
+                        "type": "dialogue",
+                        "content": "Veux-tu réinitialiser le puzzle?"
+                    },
+                    {
+                        "type": "key_wait",
+                        "content": "Appuyez sur Y pour réinitialiser.",
+                        "id": arcade.key.Y,
+                        "action": "puzzle_reset"
+                    }
+                ]
+            }
+        }
 }
 
 

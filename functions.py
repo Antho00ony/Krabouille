@@ -49,8 +49,10 @@ def change_cam_limits(self):
         self.npc_dialogue_text.position = int(round(160 * scale_x)), int(round(100 * scale_y))
         self.npc_dialogue_background.scale = 1.6 * scale
         self.npc_dialogue_background.position = self.win_width / 2, int(round(90 * scale_y))
+        self.end_screen.scale = 0.5 * scale
+        self.end_screen.position = self.win_width / 2, self.win_height / 2
 
-def npc_dialogue(self):
+def npc_dialogue(self, pressed_key=None):
     self.npc_dialogue_background.color = self.npc_dialogue_background.color[0], self.npc_dialogue_background.color[1], self.npc_dialogue_background.color[2], 150
     for npc in self.npc_dialogues_dict:
         if distance(self.player_sprite.position, self.npc_dialogues_dict[npc]["position"]) < 15:
@@ -79,6 +81,7 @@ def npc_dialogue(self):
                 if dialogue_first == "first_encounter" and "first_encounter" in self.npc_dialogues_dict[npc]["actions"]: 
                     self.npc_dialogues_dict[npc]["actions"].pop("first_encounter")
                 self.npc_dialogue_index = 0
+                self.npc_waiting_key = None
                 self.npc_show_dialogue = False
                 self.can_move = True
                 break
@@ -94,9 +97,13 @@ def npc_dialogue(self):
             if action["type"] == "finish":
                 npc_data["completed"] = True
                 self.npc_dialogue_index = 0
+                self.npc_waiting_key = None
                 self.npc_dialogues_dict[npc]["actions"].pop("others")
                 self.npc_show_dialogue = False
                 self.can_move = True
+                if action["action"] == "show_puzzle":
+                    self.transition = "in"
+                    self.pending_action = "show_puzzle"
 
             if action["type"] == "dialogue":
                 self.npc_dialogue_name.text = npc_data["name"]
@@ -111,7 +118,8 @@ def npc_dialogue(self):
                 if action["id"] in self.inventory:
                     self.object_given = True
                     self.inventory.remove(action["id"])
-                    self.inventory.add(action["item_given"])
+                    if action["item_given"] != None:
+                        self.inventory.add(action["item_given"])
                     self.npc_dialogue_name.text = action["name"]
                     self.npc_dialogue_text.text = action["content"]
                     self.npc_show_dialogue = True
@@ -119,12 +127,132 @@ def npc_dialogue(self):
                 else:
                     self.object_given = False
                     self.npc_dialogue_index = 0
+                    self.npc_waiting_key = None
                     self.npc_show_dialogue = False
                     self.can_move = True
                     break
+            elif action["type"] == "item_give":
+                self.inventory.add(action["id"])
+            elif action["type"] == "key_wait":
+                self.npc_dialogue_name.text = "Intentional Game Design"
+                self.npc_dialogue_text.text = action["content"]
+                self.npc_show_dialogue = True
+                self.cam_mode = "player"
+                expected_key = action.get("id")
+
+                if pressed_key == expected_key:
+                    self.npc_waiting_key = None
+                    if action.get("action") == "puzzle_reset":
+                        self.transition = "in"
+                        self.pending_action = "puzzle_reset"
+                        break
+                    npc_dialogue(self)
+                    break
+
+                self.npc_waiting_key = expected_key
+                self.npc_dialogue_index -= 1
+                break
 
 def distance(pos1, pos2):
         return (((pos1[0] - pos2[0]) ** 2) + ((pos1[1] - pos2[1]) ** 2)) ** 0.5
+
+def sprite_in_map_bounds(self, sprite: arcade.Sprite, center_x: float, center_y: float):
+        map_width = self.tile_map.width * self.tile_map.tile_width
+        map_height = self.tile_map.height * self.tile_map.tile_height
+        half_width = sprite.width / 2
+        half_height = sprite.height / 2
+
+        return (
+            half_width <= center_x <= map_width - half_width
+            and half_height <= center_y <= map_height - half_height
+        )
+
+def snap_pushables_to_grid(self):
+    if self.level_name != "castle":
+        return
+
+    # Tiles in this project are 16x16, centered on +8 offsets.
+    tile_size = self.tile_map.tile_width
+    half_tile = tile_size / 2
+
+    for pushable in self.pushable_list:
+        old_pos = pushable.position
+        snapped_x = round((pushable.center_x - half_tile) / tile_size) * tile_size + half_tile
+        snapped_y = round((pushable.center_y - half_tile) / tile_size) * tile_size + half_tile
+
+        if not sprite_in_map_bounds(self, pushable, snapped_x, snapped_y):
+            continue
+
+        pushable.position = snapped_x, snapped_y
+
+        blocked_by_wall = len(arcade.check_for_collision_with_list(pushable, self.hitboxes)) > 0
+        blocked_by_tile = any(
+            other is not pushable and arcade.check_for_collision(pushable, other)
+            for other in self.pushable_list
+        )
+        blocked_by_player = arcade.check_for_collision(pushable, self.player_sprite)
+
+        if blocked_by_wall or blocked_by_tile or blocked_by_player:
+            # Never snap into an invalid state (especially inside the player).
+            pushable.position = old_pos
+
+def try_push_castle_tile(self):
+    if self.level_name != "castle":
+        return
+    if self.player_sprite.change_x == 0 and self.player_sprite.change_y == 0:
+        return
+
+    old_player_pos = self.player_sprite.position
+    next_player_pos = (
+        self.player_sprite.center_x + self.player_sprite.change_x,
+        self.player_sprite.center_y + self.player_sprite.change_y
+    )
+
+    self.player_sprite.position = next_player_pos
+    touching_tiles = arcade.check_for_collision_with_list(self.player_sprite, self.pushable_list)
+    self.player_sprite.position = old_player_pos
+
+    if len(touching_tiles) == 0:
+        return
+    if len(touching_tiles) > 1:
+        self.player_sprite.change_x = 0
+        self.player_sprite.change_y = 0
+        return
+
+    pushed_tile = touching_tiles[0]
+    new_tile_x = pushed_tile.center_x + self.player_sprite.change_x
+    new_tile_y = pushed_tile.center_y + self.player_sprite.change_y
+ 
+    if not sprite_in_map_bounds(self, pushed_tile, new_tile_x, new_tile_y):
+        self.player_sprite.change_x = 0
+        self.player_sprite.change_y = 0
+        return
+
+    old_tile_pos = pushed_tile.position
+    pushed_tile.position = new_tile_x, new_tile_y
+
+    blocked_by_wall = len(arcade.check_for_collision_with_list(pushed_tile, self.hitboxes)) > 0
+    blocked_by_tile = any(
+        other is not pushed_tile and arcade.check_for_collision(pushed_tile, other)
+        for other in self.pushable_list
+    )
+
+    if blocked_by_wall or blocked_by_tile:
+        pushed_tile.position = old_tile_pos
+        self.player_sprite.change_x = 0
+        self.player_sprite.change_y = 0
+    else:
+        # Keep the moved tile in place; the physics engine will then move the player.
+        pass
+
+def reset_pushables_to_initial_positions(self):
+    if self.level_name == "castle":
+        for pushable, position in self.pushable_initial_positions:
+            pushable.position = position
+
+
+
+
 
 
 if __name__ == "__main__":

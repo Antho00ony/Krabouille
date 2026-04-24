@@ -182,23 +182,58 @@ def load_level(self, name):
     elif name == "castle":
         self.tile_map = arcade.load_tilemap("assets/maps/castle.json", scaling = self.scaling)
         self.sprite_list = arcade.SpriteList()
+        self.pushable_list = arcade.SpriteList()
+        self.pushable_initial_positions = []
         define_player(self, name)
 
         functions.change_cam_limits(self)
 
-        self.sprite_list.append(self.castle_doors_sprite)
+        pushables_by_name = {
+            "2": self.pushable_sprite2,
+            "3": self.pushable_sprite3,
+            "4": self.pushable_sprite4,
+            "6": self.pushable_sprite6,
+            "7": self.pushable_sprite7
+        }
 
-        self.pushable = {}
         for obj in self.tile_map.object_lists.get("objects", []):
             if obj.name == "spawn":
                 self.spawn_x = obj.shape[0]
                 self.spawn_y = obj.shape[1]
-            else:
-                self.pushable.update(
-                    obj.name, {"position": obj.shape}
-                )
+            elif obj.name in pushables_by_name:
+                pushable = pushables_by_name[obj.name]
+                pushable.position = obj.shape[0] + 8, obj.shape[1] + 8
+                self.pushable_list.append(pushable)
+                self.pushable_initial_positions.append((pushable, pushable.position))
+            elif obj.name == "map":
+                self.level_changes_dict.update({obj.name: {"position": (obj.shape[0], obj.shape[1]), "location": obj.properties["location"]}})
+                self.exit = obj.shape
+            elif obj.name == "1":
+                self.pushable_sprite1.position = obj.shape[0] + 8, obj.shape[1] + 8
+            elif obj.name == "5":
+                self.pushable_sprite5.position = obj.shape[0] + 8, obj.shape[1] + 8
+            elif obj.name == "reset_guard":
+                self.npc_dialogues_dict.update({
+                    obj.name: {
+                        "name": npc_dialogues.npc_dialogues_dict[obj.name]["name"],
+                        "position": (obj.shape[0], obj.shape[1]),
+                        "actions": npc_dialogues.npc_dialogues_dict[obj.name]["actions"],
+                        "completed": npc_dialogues.npc_dialogues_dict[obj.name].get("completed", False),
+                        "first_encounter_done": False,
+                        "place": npc_dialogues.npc_dialogues_dict[obj.name]["place"]
+                    }
+                })
+            elif obj.name == "chest":
+                self.chest_sprite.position = obj.shape[0] + 8, obj.shape[1] + 8
+                if self.castle_trial_won:
+                    self.chest_sprite.set_texture(1)
+                else:
+                    self.chest_sprite.set_texture(0)
 
         self.scene = arcade.Scene.from_tilemap(self.tile_map)
+        self.pushable_list.append(self.pushable_sprite1)
+        self.pushable_list.append(self.pushable_sprite5)
+        self.sprite_list.append(self.chest_sprite)
 
         # position caméra, joueur
         self.game_camera.position = self.spawn_x, self.spawn_y
@@ -209,6 +244,11 @@ def load_level(self, name):
         # physics engine
         self.hitboxes.extend(self.scene["hitboxes"])
         self.physics_engine = arcade.PhysicsEngineSimple(self.player_sprite, walls = self.hitboxes)
+    elif name == "the_end":
+        self.sprite_list = arcade.SpriteList()
+        functions.change_cam_limits(self)
+
+        self.sprite_list.append(self.end_screen)
 
 def draw_level(self, name):
     if name == "map":
@@ -295,10 +335,11 @@ def draw_level(self, name):
         self.sprite_list.draw()
         self.player_list.draw()
 
-
+        
         # NPCs dialogues avec UI Camera
-        if  self.npc_show_dialogue:
+        if self.npc_show_dialogue:
             self.ui_camera.use()
+            self.npc_dialogue_background_list.draw()
             self.npc_dialogue_name.draw()
             self.npc_dialogue_text.draw()
 
@@ -309,10 +350,33 @@ def draw_level(self, name):
     elif name == "castle":
         self.game_camera.use()
 
-        self.scene["ground"].draw() ############# pushable (avec le dict, self.pushable)
+        self.scene["ground"].draw()
+        self.scene["walls"].draw()
+        self.scene["pnjs"].draw()
+
+        self.sprite_list.draw()
+
+        if self.castle_trial_show_puzzle:
+            self.pushable_list.draw()
 
         self.player_list.draw()
 
+        self.scene["top_walls"].draw()
+
+        # NPCs dialogues avec UI Camera
+        if  self.npc_show_dialogue:
+            self.ui_camera.use()
+            self.npc_dialogue_background_list.draw()
+            self.npc_dialogue_name.draw()
+            self.npc_dialogue_text.draw()
+
+        if self.show_hitboxes:
+            self.game_camera.use()
+            self.scene["hitboxes"].draw_hit_boxes(arcade.color.GREEN)
+            self.player_sprite.draw_hit_box(arcade.color.RED)
+    elif name == "the_end":
+        self.ui_camera.use()
+        self.sprite_list.draw()
 
 if __name__ == "__main__":
     main.main()
